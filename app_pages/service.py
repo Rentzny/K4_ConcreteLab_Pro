@@ -17,7 +17,8 @@ from concretelab.quality import audit_csv, audit_counts
 from concretelab.scenarios import simulasi_beban, tabel_skenario, bandingkan_dua_analisis
 from concretelab.reporting import buat_pdf, buat_zip
 
-BASE_DIR = Path(__file__).resolve().parent
+# Lokasi file ini app_pages/service.py; data/ berada satu tingkat di atas app_pages.
+BASE_DIR = Path(__file__).resolve().parent.parent
 DEMO_FILE = BASE_DIR / "data" / "contoh_18_silinder.csv"
 TEMPLATE_FILE = BASE_DIR / "data" / "template_kosong.csv"
 PALETTE = ["#387C9E", "#138579", "#DE9952", "#8378B8", "#9B677A", "#65908F"]
@@ -58,32 +59,90 @@ def hapus_csv_sesi():
     for key in ("k4_csv_upload", "k4_uploaded_bytes", "k4_uploaded_name", "k4_saved_edit_csv", "k4_active_fingerprint"):
         st.session_state.pop(key, None)
 
-# Uploader ditampilkan di area utama supaya mudah ditemukan di layar HP.
+# Tempat upload dibuat sebagai dropzone asli Streamlit di area utama.
+# Pada HP area ini otomatis mengikuti lebar layar; tidak memakai animasi atau HTML upload palsu.
+st.markdown("""
+<style>
+[data-testid="stFileUploaderDropzone"] {
+    background: #F7FAFB !important;
+    border: 2px dashed #AFC3CC !important;
+    border-radius: 14px !important;
+    min-height: 152px !important;
+    padding: 24px !important;
+}
+[data-testid="stFileUploaderDropzone"] button {
+    background-color: #355C68 !important;
+    border-color: #355C68 !important;
+    color: white !important;
+    border-radius: 8px !important;
+}
+[data-testid="stFileUploaderDropzone"] button:hover {
+    background-color: #294955 !important;
+    border-color: #294955 !important;
+}
+@media (max-width: 640px) {
+    [data-testid="stFileUploaderDropzone"] {
+        min-height: 130px !important;
+        padding: 14px !important;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
 with st.container(border=True):
-    st.markdown("#### Unggah data pengujian")
+    st.markdown("### Unggah CSV untuk mulai analisis")
+    st.caption(
+        "Tarik dan letakkan file CSV pada area di bawah, atau tekan Browse files. "
+        "Format .csv, maksimal 10 MB."
+    )
     upload = st.file_uploader(
-        "Pilih file CSV",
+        "Data pengujian beton (.csv)",
         type=["csv"],
-        help="Kolom sesuai template. Batas ukuran 10 MB.",
+        help="CSV harus menggunakan kolom sesuai template. Maksimum 10 MB.",
         key="k4_csv_upload",
         on_change=simpan_csv_ke_sesi,
+        label_visibility="collapsed",
     )
-    c1, c2 = st.columns(2, gap="small")
-    with c1:
-        st.download_button("Unduh CSV contoh", data=DEMO_FILE.read_bytes(),
-            file_name="contoh_18_silinder.csv", mime="text/csv",
-            use_container_width=True)
-    with c2:
-        st.download_button("Unduh template", data=TEMPLATE_FILE.read_bytes(),
-            file_name="template_input.csv", mime="text/csv",
-            use_container_width=True)
-    if st.session_state.get("k4_uploaded_bytes") is not None:
-        cc1, cc2 = st.columns([2.5, 1], gap="small")
-        with cc1:
-            st.caption(f"Data aktif: {st.session_state.get('k4_uploaded_name', 'data.csv')}")
-        with cc2:
-            st.button("Hapus data", on_click=hapus_csv_sesi,
-                use_container_width=True, key="k4_clear")
+    if st.session_state.get("k4_uploaded_bytes") is None:
+        st.caption("Belum ada data yang dimasukkan. Grafik, statistik, dan PDF belum ditampilkan.")
+    else:
+        active_name = st.session_state.get("k4_uploaded_name", "data.csv")
+        size_kb = len(st.session_state["k4_uploaded_bytes"]) / 1024
+        st.success(f"File diterima: {active_name} ({size_kb:,.1f} KB). Data sedang diperiksa.")
+        st.button("Hapus file dan mulai lagi", on_click=hapus_csv_sesi,
+                  key="k4_clear", use_container_width=False)
+
+st.markdown("#### Belum punya file CSV?")
+c1, c2 = st.columns(2, gap="small")
+with c1:
+    if DEMO_FILE.is_file():
+        st.download_button(
+            "⬇️ Unduh CSV contoh 18 silinder",
+            data=DEMO_FILE.read_bytes(),
+            file_name="contoh_18_silinder.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    else:
+        st.warning("CSV contoh tidak ditemukan pada folder data/ di server.")
+with c2:
+    if TEMPLATE_FILE.is_file():
+        st.download_button(
+            "⬇️ Unduh template CSV kosong",
+            data=TEMPLATE_FILE.read_bytes(),
+            file_name="template_input.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    else:
+        st.warning("Template CSV belum tersedia di folder data/ di server.")
+with st.expander("Lihat panduan format CSV"):
+    st.markdown(
+        "Kolom wajib: `id_benda_uji`, `campuran`, `umur_hari`, "
+        "`diameter_mm`, `beban_maksimum_kN`, dan `id_pengujian`. "
+        "Gunakan satu baris untuk setiap silinder, dengan diameter dalam mm dan beban dalam kN."
+    )
+    st.caption("Unduh file contoh di atas untuk melihat susunan datanya.")
 
 with st.sidebar:
     # Pengaturan analisis tetap tersedia saat kembali dari Beranda / About.
