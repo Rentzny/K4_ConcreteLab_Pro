@@ -1,24 +1,13 @@
-# K4 ConcreteLab Pro — Riwayat Pengembangan
+# Changelog
 
-## v2.0 — Smart Audit, What-if & Dataset Comparison
+## v2.1 — Minimal Engineering
+- Menu **Produk** diganti menjadi **Service**.
+- Navigasi tiga halaman Beranda / Service / About menggunakan Streamlit `st.Page` + `st.navigation(position="top")`.
+- Homepage ringan, latar putih abu-abu, animasi sengaja ditiadakan.
+- Upload CSV terlihat langsung di halaman Service, termasuk saat dibuka via HP.
+- CSV dan edit tabel tersimpan sementara selama sesi navigasi, tidak disimpan ke server secara permanen.
+- Seluruh analisis, grafik, simulasi, PDF, ZIP v2.0 tetap tersedia di Service.
+- Minimal Streamlit 1.46 untuk navigasi atas.
 
-### Fitur baru
-
-- **Audit input baris-per-baris**: kesalahan diberi nomor baris CSV, kolom, kategori, dan saran perbaikan. Tidak ada data yang dihapus otomatis.
-- **Pengaturan upload-first dipertahankan**: tanpa CSV, tidak ada hasil statistik, grafik, atau PDF.
-- **Simulasi beban**: skenario perubahan beban maksimum dari -50% sampai +100% dan grafik sensitivitas lima skenario. Perhitungan baru tidak mengubah CSV maupun PDF utama.
-- **Bandingkan CSV**: membaca berkas pembanding secara opsional dan menampilkan selisih rata-rata serta CV antar-campuran, tanpa menggabungkan sampel.
-- **Tab audit input**: riwayat temuan yang bisa diunduh sebagai CSV.
-- **Ekspor diperluas**: paket ZIP dan CLI mencakup `audit_input.csv` serta metadata versi.
-- **Cache hasil ekspor**: PDF dan ZIP dipersiapkan lagi hanya jika CSV atau parameter laporan berubah.
-- **CI GitHub Actions**: menjalankan sintaks dan seluruh uji otomatis pada Python 3.11 dan 3.13.
-
-### Fitur tetap ada
-
-- `BendaUji`, validasi data, perhitungan MPa, statistik, outlier screening, simulasi SNI terbatas, empat grafik, dan PDF A4 multi-halaman.
-- Dashboard upload-first, data editor, unduh CSV, ZIP, PDF, dan CLI lokal.
-
-### Catatan penting
-
-- Verifikasi Python/perhitungan dan pembuatan PDF dilakukan lokal; **dashboard Streamlit belum diuji end-to-end di browser pada lingkungan pengembangan ini** karena paket Streamlit tidak tersedia di sana.
-- Untuk laboratorium nyata, sesuaikan dengan standar yang berlaku dan protokol validasi serta keamanan data.
+## v2.0
+- Audit CSV, edit tabel, perbandingan dataset, simulasi beban, grafik dan laporan otomatis.

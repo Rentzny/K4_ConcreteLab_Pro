@@ -1,0 +1,18 @@
+PANDUAN PEMBARUAN K4 CONCRETELAB PRO v2.1
+
+1. Ekstrak ZIP UPDATE V21 ke folder sementara.
+2. Buka folder repository K4_ConcreteLab_Pro yang sudah tersambung GitHub.
+3. Salin ISI hasil ekstrak ke folder repository (lokasi yang sejajar app.py).
+4. Jika diminta, pilih Replace files. JANGAN hapus .git atau .venv.
+5. Periksa tab Changes GitHub Desktop: app.py, app_pages/, README.md, CHANGELOG.md, requirements.txt, .streamlit/config.toml, PANDUAN_UPDATE_V21.txt.
+6. Commit to main, lalu Push origin.
+7. Tunggu sampai Streamlit Cloud selesai membangun ulang aplikasi. Pastikan entrypoint tetap app.py.
+8. Periksa menu Beranda / Service / About pada desktop dan HP. Di menu Service unggah CSV contoh.
+9. Jika ada error, lihat Manage app > Logs di Streamlit Cloud.
+
+CATATAN:
+- Beranda tidak otomatis menganalisis CSV.
+- Unggah CSV ada di halaman Service, bukan Beranda.
+- Versi ini menggunakan navigasi resmi Streamlit. Tampilan menu mobile mengikuti versi Streamlit yang dipakai.
+- CSV disimpan sementara dalam sesi browser; tidak otomatis tersimpan permanen.
+- Karena belum ada paket Streamlit di lingkungan pengembangan, tampilan UI perlu diuji setelah deploy.

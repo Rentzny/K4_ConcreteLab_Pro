@@ -1,158 +1,39 @@
-# K4 ConcreteLab Pro v2.0 — Upload CSV, Smart Audit & What-if
+# K4 ConcreteLab Pro v2.1 — Minimal Engineering
 
-**Pembaruan dari versi PjBL K4 sebelumnya**: audit CSV per baris, editor data, simulasi perubahan beban, perbandingan dua dataset, dan ekspor hasil PDF/ZIP berdasarkan data terkini. Semuanya tetap memakai rumus perhitungan teknik yang sama.
+Aplikasi Streamlit pengolahan hasil uji kuat tekan beton. Fitur analisis v2.0 dipertahankan, dengan navigasi **Beranda | Service | About** dan homepage minimalis tanpa animasi.
 
-![Status](https://img.shields.io/badge/Python-3.11%20%7C%203.13-blue) ![Data](https://img.shields.io/badge/input-CSV-green)
+## Cara menjalankan
 
-## Cara paling mudah memperbarui website GitHub
+1. Jalankan `run_windows_PERBAIKAN.bat` (Windows) atau aktifkan Python lalu jalankan `streamlit run app.py`.
+2. Kunjungi menu **Service** dan unggah CSV (contoh tersedia di halaman tersebut).
+3. Baca audit input, edit data bila perlu, lihat statistik dan grafik, lalu unduh PDF/ZIP.
+4. Menu **Beranda** tidak menampilkan hasil analisis, dan tidak ada CSV yang dimuat secara otomatis.
 
-Lihat **`PANDUAN_UPDATE_V2.txt`**. Gunakan paket **PATCH**, salin seluruh isi ke root repository lama (sejajar `app.py`), lalu **Commit to main → Push origin** di GitHub Desktop. Jangan hapus `.git` dan `.venv`.
+## Navigasi dan mobile
 
-## Fitur v2.0
+- Desktop: navigasi horizontal dari `st.navigation(position="top")`.
+- Mobile: navigasi bawaan Streamlit beradaptasi pada layar kecil; perilaku persis menu perlu diuji di browser/HP setelah deploy.
+- Data upload dan hasil edit disalin ke session state untuk bertahan saat berpindah halaman **dalam sesi yang sama**, bukan database permanen.
+- Homepage sederhana: latar terang, warna netral, tiga kartu fitur, tanpa animasi atau video latar.
 
-- **Audit CSV**: nomor baris, nama kolom, jenis masalah, dan saran perbaikan; kesalahan menghalangi analisis sampai dibetulkan.
-- **Editor CSV**: tambah/hapus/ubah baris secara interaktif, file asli tetap aman.
-- **Skenario beban**: simulasi numerik, bukan prediksi atau hasil pengujian baru.
-- **Bandingkan dua CSV**: tampilkan perbedaan rata-rata, CV, dan jumlah silinder.
-- **PDF/ZIP**: data dan grafik mengikuti CSV aktif; metadata ZIP menyertakan audit.
-- **Pengujian**: jalankan `python -m pytest -q tests` atau lihat tab Actions pada GitHub.
+## Kebutuhan
 
-# K4 ConcreteLab Pro
+`requirements.txt` memerlukan Streamlit versi **1.46+** untuk navigasi atas, ditambah pandas, NumPy, Matplotlib, Plotly dan ReportLab.
 
-**Aplikasi web dan mesin analisis kuat tekan beton yang dibuat dari proyek PjBL K4 Teknik Sipil.**
+## File penting
 
-Aplikasi ini melanjutkan notebook `Proyek_K4_Beton_FINAL_PDF_Otomatis.ipynb`. Rumus dasar, konsep fungsi/class, dan struktur CSV tetap kompatibel. Versi ini **tidak mengganti** notebook lama; gunakan sebagai pengembangan dan demonstrasi aplikasi.
+- `app.py` — router, konfigurasi, gaya global
+- `app_pages/home.py` — Beranda
+- `app_pages/service.py` — aplikasi analisis dan ekspor v2.0
+- `app_pages/about.py` — informasi proyek
+- `concretelab/` — mesin perhitungan, quality, skenario, grafik, PDF
+- `tests/` — tes otomatis yang bisa dijalankan dengan `pytest -q`
+- `data/` — CSV contoh dan template
 
-> **Penting:** Data contoh **ilustratif**, bukan data laboratorium nyata. Kriteria numerik SNI pada aplikasi adalah **simulasi pendidikan dengan asumsi tertentu**, bukan bukti pemenuhan seluruh standar atau sertifikat penerimaan beton. Penggunaan di laboratorium nyata harus diverifikasi oleh personel berwenang.
+## Deployment GitHub → Streamlit Cloud
 
-## Fitur yang sudah dibuat
+Timpa file lama dengan paket update v2.1 **di root repository** (jangan membuat folder baru bersarang). Lakukan `Commit to main` dan `Push origin` dari GitHub Desktop. Streamlit menggunakan `app.py` sebagai entrypoint. Periksa navigasi desktop dan HP setelah deploy.
 
-- **Web dashboard** menggunakan Streamlit; dapat dibuka dari browser di laptop/HP jaringan lokal jika konfigurasi firewall mengizinkan.
-- **Mode upload dahulu (dashboard kosong sebelum ada CSV)** dan **editor tabel** untuk mengubah beban, diameter, ID uji, dan menambah/menghapus baris.
-- **Validasi kuat:** kolom wajib, ID unik, nilai positif/terhingga, pasangan uji, umur, diameter, dan urutan pengujian opsional.
-- **Core Python terpisah**: `BendaUji`, fungsi perhitungan, statistik, koefisien variasi (CV), rekap pasangan, outlier ±2SD.
-- **Evaluasi simulasi** jendela tiga hasil uji berurutan, dua ambang numerik, dan status *tidak dapat dievaluasi* bila data tak memenuhi asumsi.
-- **Simulasi sensitivitas target** saat mutu rencana diubah.
-- **Empat grafik** (histogram, rata-rata dan SD, boxplot, tren) serta grafik interaktif Plotly.
-- **PDF A4 otomatis** dari data CSV terkini; berisi statistik, dua grafik, tabel hasil uji, evaluasi, dan catatan keterbatasan.
-- **Paket ZIP hasil lengkap**: 6 CSV (termasuk input dan jendela tiga uji), 4 PNG, PDF, metadata JSON dengan hash SHA-256 sumber.
-- **Mode terminal**: jalankan `cli.py` untuk ekspor otomatis tanpa browser.
-- **Tes otomatis**: data contoh, validasi, kasus error, target fleksibel, ekspor PDF/ZIP, perubahan data CSV.
+## Batasan ilmiah
 
-## Cara menjalankan di Windows — paling mudah
-
-1. Ekstrak file ZIP proyek ke folder, contoh `D:\KULIAH\SEMESTER 3\Bahasa Pemrograman\PJBL\K4_ConcreteLab_Pro`.
-2. Klik dua kali **`run_windows.bat`** (Windows harus memiliki Python yang bisa dipanggil; skrip akan mencari Python 3.13 terlebih dahulu).
-3. Saat pertama kali dijalankan, skrip membuat `.venv` dan memasang pustaka dari `requirements.txt` (**memerlukan internet**).
-4. Buka **`http://localhost:8501`** di browser jika belum terbuka otomatis.
-5. Saat pertama kali dibuka, halaman menampilkan sambutan tanpa statistik, tabel, atau grafik. Unggah `kuat_tekan_beton.csv` lewat sidebar terlebih dahulu; data contoh tidak dimuat otomatis. Kamu dapat mengunduh CSV contoh dari sidebar untuk mencoba aplikasinya.
-6. Sesuaikan f'c di sidebar. Lihat tab Ringkasan, Data & Statistik, Evaluasi, Visualisasi, atau Unduh Laporan.
-7. Unduh **PDF** atau **paket ZIP**. Mengedit tabel di browser **tidak menimpa CSV asli**.
-
-### Cara lewat Terminal VS Code
-
-Di Terminal VS Code, pastikan kamu berada pada folder `K4_ConcreteLab_Pro`, lalu jalankan:
-
-```powershell
-py -3.13 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m streamlit run app.py
-```
-
-Alternatif jika `py -3.13` tidak ditemukan, gunakan `python -m venv .venv` dengan Python minimal 3.11.
-
-**Catatan VS Code:** aplikasi Streamlit dijalankan dari **Terminal**, bukan dengan tombol `Run All` notebook. Notebook lama tetap memakai `Restart + Run All` seperti biasa.
-
-## Cara ekspor otomatis tanpa web (CLI)
-
-```powershell
-.\.venv\Scripts\python.exe cli.py --input data\contoh_18_silinder.csv --target 30 --output hasil
-```
-
-Untuk data pribadi:
-
-```powershell
-.\.venv\Scripts\python.exe cli.py --input kuat_tekan_beton.csv --target 32 --output hasil
-```
-
-Ini membuat PDF, empat grafik, CSV statistik dan evaluasi, serta paket ZIP di folder `hasil`.
-
-## Format CSV wajib
-
-| Kolom | Satuan | Contoh | Keterangan |
-|---|---|---|---|
-| `id_benda_uji` | teks | U01 | ID unik per silinder |
-| `campuran` | teks | A | Penanda tipe campuran |
-| `umur_hari` | hari | 28 | Wajib positif |
-| `diameter_mm` | mm | 150 | Wajib positif |
-| `beban_maksimum_kN` | kN | 500 | Wajib positif |
-| `id_pengujian` | teks | A01 | ID hasil uji yang menggabungkan 2 silinder |
-| `urutan_uji` | bilangan bulat | 1 | **Opsional** tetapi disarankan; satu nilai sama untuk pasangan silinder dalam satu hasil uji; urutan penilaian 3 hasil uji |
-
-Contoh: `data/contoh_18_silinder.csv`. Semua angka menggunakan **titik desimal** dalam CSV. Kolom opsional `urutan_uji` mendukung pengambilan sampel berurutan yang lebih jelas daripada pengurutan berdasarkan ID.
-
-Jika data diunggah tidak memenuhi asumsi 2 silinder per pengujian, diameter 150 mm, dan umur 28 hari, program **tetap menghitung kuat tekan**, tetapi status simulasi penerimaan campuran terkait menjadi **Tidak dapat dievaluasi**.
-
-## Rumus yang digunakan
-
-- Luas penampang: `A_mm2 = π × diameter_mm² / 4`.
-- Kuat tekan: `fc_MPa = 1000 × beban_maksimum_kN / A_mm2`.
-- Rata-rata, simpangan baku sampel, median, minimum, maksimum, dan `CV = simpangan_baku / rata_rata × 100%`.
-- Outlier **indikatif**, bukan keputusan menghapus data: `|fc - mean_campuran| > 2 × SD` jika `n ≥ 5` per campuran.
-- Simulasi kriteria numerik untuk `f'c <= 35 MPa`: semua rata-rata bergerak 3 hasil uji >= f'c; tidak ada hasil uji < f'c − 3,5 MPa. Jika `f'c > 35 MPa`, batas individual menjadi 0,9 f'c. **Sumber logika:** kriteria numerik yang digunakan pada notebook K4; perlu verifikasi standar dan penerapan lapangan.
-
-**Penting membedakan:** tabel per *silinder* untuk distribusi/statistik dan tabel per *hasil uji* untuk simulasi penilaian; keduanya tidak sama.
-
-## Pengujian program
-
-Instal dependensi dev (`requirements-dev.txt`) lalu:
-
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-.\.venv\Scripts\python.exe -m pytest -q
-```
-
-Tes dibuat pada `tests/test_engine.py`. Semua tes inti lulus pada lingkungan pembuatan paket. Antarmuka web membutuhkan pengujian tambahan pada Windows setelah memasang Streamlit (komponen ini tidak dapat dijalankan pada lingkungan pembuat karena Streamlit tidak tersedia).
-
-## Berbagi aplikasi online
-
-- Gunakan GitHub repository untuk kode aplikasi (jangan unggah berkas CSV nyata yang mengandung informasi rahasia).
-- Pada Streamlit Community Cloud, pilih repo tersebut dan entrypoint **`app.py`**; `requirements.txt` di root mengatur dependensi.
-- Untuk tugas kelas, lebih aman menjalankan di localhost terlebih dahulu. Cloud membutuhkan internet; data yang diunggah diproses di server hosting.
-- Colab tidak diperlukan untuk dashboard Streamlit. Jika ingin memakai Colab untuk analisis, gunakan `cli.py` atau notebook lama dan pastikan lokasi CSV di Drive sudah benar.
-
-Dokumentasi resmi: https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy
-
-## Struktur folder
-
-```
-K4_ConcreteLab_Pro/
-├── app.py                      # UI web
-├── cli.py                      # Mode terminal
-├── concretelab/
-│   ├── engine.py               # Perhitungan dan validasi
-│   ├── plots.py                # Gambar statistik
-│   └── reporting.py            # PDF dan ZIP
-├── data/
-│   ├── contoh_18_silinder.csv
-│   └── template_kosong.csv
-├── tests/test_engine.py
-├── contoh_output/
-│   └── Laporan_Otomatis_K4_Beton.pdf
-├── requirements.txt
-├── requirements-dev.txt
-├── run_windows.bat
-└── README.md
-```
-
-## Fitur yang *belum* disertakan (tahap produksi)
-
-- Integrasi otomatis ke mesin UTM/CTM, IoT, dan alat laboratorium.
-- Multiuser/login aman, database permanen, tanda tangan digital, audit trail berbasis server.
-- QR-code verifikasi laporan dan sinkronisasi hasil beberapa proyek secara real-time.
-- Model AI prediksi kuat tekan: membutuhkan data laboratorium nyata dengan variasi komposisi, umur, dan kontrol kualitas; 18 data ilustratif **tidak mencukupi**.
-- Sertifikasi laboratorium atau jaminan kesesuaian seluruh klausul standar.
-
-## Kredit penggunaan AI dan sumber
-
-Pengembangan aplikasi dan dokumentasi dibantu ChatGPT/OpenAI. Siswa/kelompok tetap wajib memahami rumus, menguji aplikasi, memverifikasi data dan metode, serta menyatakan bantuan AI sesuai aturan integritas akademik dosen.
+Data contoh bersifat ilustratif. Evaluasi mutu adalah simulasi numerik terbatas, **bukan sertifikat pengujian atau keputusan penerimaan beton nyata**. Tidak ada penyimpanan permanen untuk CSV yang diunggah dan jangan mengunggah data rahasia ke layanan publik tanpa perlindungan yang sesuai.
