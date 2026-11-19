@@ -43,30 +43,89 @@ div[data-testid="stDownloadButton"] button {border:1px solid #9DC2D1; border-rad
 st.markdown('''<div class="k4-hero"><div class="k4-eyebrow">ENGINEERING ANALYTICS / PJBL K4</div><h1>K4 ConcreteLab Pro</h1><p>Dashboard interaktif evaluasi kuat tekan beton • CSV → Analisis → Grafik → PDF otomatis</p></div>''', unsafe_allow_html=True)
 
 with st.sidebar:
-    st.markdown("### ⚙️ Pengaturan Analisis")
-    st.caption("Data pada aplikasi diproses dalam sesi, tanpa disimpan otomatis ke database server.")
-    upload = st.file_uploader("Unggah data pengujian (.csv)", type=["csv"], help="Format kolom sesuai file contoh. Batas ukuran 10 MB.")
+    st.markdown("### 📁 Mulai dari CSV")
+    st.caption("Unggah CSV untuk mengaktifkan seluruh dashboard, perhitungan, grafik, dan PDF.")
+    upload = st.file_uploader(
+        "Unggah data pengujian (.csv)",
+        type=["csv"],
+        help="Gunakan struktur kolom pada template. Maksimum 10 MB.",
+        key="k4_csv_upload",
+    )
+    st.download_button(
+        "⬇️ Unduh CSV contoh",
+        data=DEMO_FILE.read_bytes(),
+        file_name="contoh_18_silinder.csv",
+        mime="text/csv",
+        use_container_width=True,
+    )
+    st.download_button(
+        "⬇️ Unduh template kolom",
+        data=TEMPLATE_FILE.read_bytes(),
+        file_name="template_input.csv",
+        mime="text/csv",
+        use_container_width=True,
+    )
+
+    # Pengaturan analisis belum muncul sebelum pengguna memasukkan CSV.
     if upload is not None:
-        raw_bytes = upload.getvalue()
-        source_name = upload.name
-    else:
-        raw_bytes = DEMO_FILE.read_bytes()
-        source_name = "Data contoh 18 silinder (ilustratif)"
-        st.info("Sedang memakai data contoh. Unggah CSV untuk menganalisis datamu sendiri.")
-    if len(raw_bytes) > 10*1024*1024:
-        st.error("CSV melebihi batas unggahan 10 MB.")
-        st.stop()
-    st.download_button("⬇️ Unduh CSV contoh",data=DEMO_FILE.read_bytes(),file_name="contoh_18_silinder.csv",mime="text/csv",use_container_width=True)
-    st.download_button("⬇️ Unduh template kolom",data=TEMPLATE_FILE.read_bytes(),file_name="template_input.csv",mime="text/csv",use_container_width=True)
-    st.divider()
-    target = st.number_input("Mutu rencana f'c (MPa)",min_value=1.0,max_value=150.0,value=30.0,step=0.5,help="Parameter evaluasi, bukan kolom CSV.")
-    nama_proyek = st.text_input("Nama proyek",value="PjBL K4 - Evaluasi Kuat Tekan Beton",max_chars=110)
-    penanggung = st.text_input("Kelompok / penanggung jawab",value="Kelompok PjBL K4",max_chars=85)
-    label_sumber = st.selectbox("Jenis sumber data",["Ilustratif / pembelajaran","Data uji lapangan (perlu verifikasi)"],index=0)
-    st.caption("Status data lapangan tidak otomatis menjadikan simulasi ini bukti penerimaan beton.")
-    st.divider()
-    st.markdown("**Asumsi simulasi SNI**")
-    st.caption("Dua silinder Ø150 mm per hasil uji, umur 28 hari, dan tiga hasil uji berurutan. Metode ±2SD hanya skrining outlier.")
+        st.divider()
+        st.markdown("### ⚙️ Pengaturan Analisis")
+        st.caption("Data diproses dalam sesi. Aplikasi tidak menyimpannya otomatis ke database.")
+        target = st.number_input(
+            "Mutu rencana f'c (MPa)", min_value=1.0, max_value=150.0,
+            value=30.0, step=0.5,
+            help="Parameter evaluasi, bukan kolom CSV.",
+        )
+        nama_proyek = st.text_input(
+            "Nama proyek", value="PjBL K4 - Evaluasi Kuat Tekan Beton", max_chars=110,
+        )
+        penanggung = st.text_input(
+            "Kelompok / penanggung jawab", value="Kelompok PjBL K4", max_chars=85,
+        )
+        label_sumber = st.selectbox(
+            "Jenis sumber data",
+            ["Ilustratif / pembelajaran", "Data uji lapangan (perlu verifikasi)"],
+            index=0,
+        )
+        st.caption("Status data lapangan tidak otomatis membuktikan penerimaan beton.")
+        st.divider()
+        st.markdown("**Asumsi simulasi SNI**")
+        st.caption("Dua silinder Ø150 mm per hasil uji, umur 28 hari, tiga hasil uji berurutan. ±2SD hanya skrining outlier.")
+
+# Halaman awal sengaja tidak melakukan perhitungan otomatis dari CSV contoh.
+# Ketika uploader masih kosong, hentikan eksekusi SEBELUM analisis, tabel dan grafik.
+if upload is None:
+    st.markdown("""
+    <div style="background:white;border:1px solid #DFE7EC;border-radius:17px;
+                padding:34px 36px;margin:14px 0 22px 0;">
+      <div style="font-size:.78rem;font-weight:700;letter-spacing:.12em;color:#138579;">
+        SELAMAT DATANG
+      </div>
+      <h2 style="color:#15324C;margin:9px 0 10px 0;">Mulai analisis dari file CSV</h2>
+      <p style="color:#526B7E;max-width:800px;line-height:1.6;">
+        Dashboard masih kosong karena belum ada data pengujian yang diunggah.
+        Gunakan panel <b>Unggah data pengujian (.csv)</b> di sebelah kiri.
+        Hasil perhitungan, tabel, grafik, evaluasi, dan laporan PDF otomatis
+        hanya akan ditampilkan setelah file CSV valid diterima.
+      </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.info("**1. Siapkan CSV**\n\nUnduh template atau CSV contoh dari panel kiri.")
+    with c2:
+        st.info("**2. Unggah file**\n\nPilih CSV kamu melalui tombol upload di sidebar.")
+    with c3:
+        st.info("**3. Lihat hasil**\n\nAnalisis, grafik, dan PDF akan tersedia otomatis.")
+    st.caption("Tidak ada hasil uji yang ditampilkan sebelum data diunggah. Data contoh tidak digunakan secara otomatis.")
+    st.stop()
+
+raw_bytes = upload.getvalue()
+source_name = upload.name
+if len(raw_bytes) > 10 * 1024 * 1024:
+    st.error("CSV melebihi batas unggahan 10 MB.")
+    st.stop()
 
 try:
     raw_df = read_csv(raw_bytes)
