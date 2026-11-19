@@ -1,0 +1,47 @@
+K4 CONCRETELAB PRO v2.0 — PANDUAN PEMBARUAN (GITHUB DESKTOP)
+=============================================================
+
+JANGAN HAPUS proyek di GitHub. JANGAN HAPUS folder .git atau .venv.
+1) Buat backup folder lokal K4_ConcreteLab_Pro terlebih dahulu.
+2) Unduh paket K4_ConcreteLab_Pro_V2_PATCH.zip.
+3) Ekstrak isi PATCH ke folder proyek LAMA yang berisi app.py, requirements.txt,
+   concretelab, tests, .streamlit, dan README.md.
+4) Jika Windows bertanya, pilih Ganti/Replace files in destination.
+   File baru lain akan otomatis ditambahkan.
+5) Buka GitHub Desktop → Changes. Pastikan app.py, concretelab/quality.py,
+   concretelab/scenarios.py, tests/test_v2.py, dan file pendukung terlihat.
+6) Isi Summary: Upgrade K4 ConcreteLab Pro v2 - audit, scenario, comparison
+7) Klik Commit to main, kemudian Push origin.
+8) Tunggu deployment Streamlit menyelesaikan pembaruan dan reload halaman.
+
+FITUR BARU
+- Mode upload-first tetap dipertahankan.
+- Audit CSV: nomor baris, kolom, masalah, dan saran perbaikan.
+- Editor data: mengubah CSV tanpa mengubah berkas asli.
+- Analisis beban What-if (-50% s.d. +100%), tidak mengubah PDF utama.
+- Perbandingan dua CSV tanpa menggabungkan data.
+- CSV audit disertakan dalam paket hasil ZIP dan mode CLI.
+- Cache ekspor PDF/ZIP untuk menghindari pembuatan ulang tanpa perubahan.
+- Pengujian GitHub Actions otomatis pada push ke branch main.
+
+COBA WEBSITE
+- Tanpa CSV: halaman sambutan saja, tanpa statistik/grafik.
+- Upload data/contoh_18_silinder.csv: analisis A/B/C, 18 silinder.
+- Buka Audit input, Skenario beban, dan Bandingkan CSV.
+- Upload data/contoh_pembanding_18_silinder.csv pada tab Bandingkan CSV.
+- Buka tab Unduh laporan → PDF / ZIP / hasil CSV terbaru.
+
+LOKAL (jika dibutuhkan)
+- run_windows_PERBAIKAN.bat
+- Atau pada terminal lingkungan Python dengan dependensi terpasang:
+  python -m streamlit run app.py
+- Test kode: python -m pytest -q tests
+
+PENTING
+- Berkas CSV yang diunggah berada di memori sesi server, bukan otomatis
+  tersimpan permanen di database. Hindari data laboratorium rahasia.
+- Mode simulasi hanya untuk pembelajaran: bukan sertifikat atau keputusan
+  penerimaan mutu beton lapangan.
+- Mengubah data CSV lokal tidak otomatis mengubah data di website; unggah ulang.
+- Jika tersedia versi Python 3.11 atau 3.13 untuk Streamlit Cloud,
+  gunakan versi yang cocok dengan requirements.txt.

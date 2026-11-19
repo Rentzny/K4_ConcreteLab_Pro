@@ -16,6 +16,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 
 from .engine import HasilAnalisis
 from .plots import semua_grafik
+from .quality import audit_csv, audit_counts
 
 NAVY = colors.HexColor("#15324C")
 TEAL = colors.HexColor("#12786F")
@@ -206,8 +207,11 @@ def buat_zip(h: HasilAnalisis, pdf_bytes: bytes, gambar: dict[str,bytes], nama_p
         "hasil/rekap_pengujian.csv":h.rekap_uji,
         "hasil/evaluasi_simulasi.csv":h.evaluasi,
         "hasil/jendela_tiga_uji.csv":h.jendela_tiga_uji,
+        "hasil/audit_input.csv":audit_csv(h.input_data),
     }
     manifest={
+        "versi_aplikasi":"2.0",
+        "audit_input":audit_counts(audit_csv(h.input_data)),
         "nama_proyek":nama_proyek,
         "dibuat_pada":datetime.now().isoformat(timespec="seconds"),
         "mutu_rencana_MPa":h.mutu_rencana,

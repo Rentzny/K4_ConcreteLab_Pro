@@ -13,6 +13,8 @@ import streamlit as st
 
 from concretelab.engine import read_csv, analisis, evaluasi_tiga_uji, DataValidationError
 from concretelab.plots import semua_grafik
+from concretelab.quality import audit_csv, audit_counts
+from concretelab.scenarios import simulasi_beban, tabel_skenario, bandingkan_dua_analisis
 from concretelab.reporting import buat_pdf, buat_zip
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -20,7 +22,18 @@ DEMO_FILE = BASE_DIR / "data" / "contoh_18_silinder.csv"
 TEMPLATE_FILE = BASE_DIR / "data" / "template_kosong.csv"
 PALETTE = ["#387C9E", "#138579", "#DE9952", "#8378B8", "#9B677A", "#65908F"]
 
-st.set_page_config(page_title="K4 ConcreteLab Pro | Analisis Beton", page_icon="🏗️", layout="wide", initial_sidebar_state="expanded")
+
+@st.cache_data(show_spinner=False, max_entries=10)
+def cache_berkas_laporan(csv_bytes: bytes, target: float, nama: str, penanggung: str, sumber: str):
+    """Menghasilkan berkas dari CSV dan parameter; tidak memakai data hard-coded."""
+    d = read_csv(csv_bytes)
+    hasil = analisis(d, target, sumber=sumber, raw_bytes=csv_bytes)
+    gambar = semua_grafik(hasil)
+    pdf = buat_pdf(hasil, nama_proyek=nama, penanggung_jawab=penanggung, grafik=gambar)
+    zip_bytes = buat_zip(hasil, pdf, gambar, nama_proyek=nama)
+    return gambar, pdf, zip_bytes
+
+st.set_page_config(page_title="K4 ConcreteLab Pro v2 | Analisis Beton", page_icon="🏗️", layout="wide", initial_sidebar_state="expanded")
 st.markdown("""
 <style>
 .stApp {background: #F4F7FA; color: #15324C;}
@@ -40,7 +53,7 @@ div[data-testid="stDownloadButton"] button {border:1px solid #9DC2D1; border-rad
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('''<div class="k4-hero"><div class="k4-eyebrow">ENGINEERING ANALYTICS / PJBL K4</div><h1>K4 ConcreteLab Pro</h1><p>Dashboard interaktif evaluasi kuat tekan beton • CSV → Analisis → Grafik → PDF otomatis</p></div>''', unsafe_allow_html=True)
+st.markdown('''<div class="k4-hero"><div class="k4-eyebrow">ENGINEERING ANALYTICS / PJBL K4</div><h1>K4 ConcreteLab Pro <span style="font-size:.83rem;vertical-align:middle;color:#D3FFF0;">v2.0</span></h1><p>Dashboard interaktif evaluasi kuat tekan beton • CSV → Analisis → Grafik → PDF otomatis</p></div>''', unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown("### 📁 Mulai dari CSV")
@@ -140,7 +153,29 @@ with st.expander("✏️ Tinjau atau edit data sebelum dihitung",expanded=False)
     st.caption("Ubah beban, diameter, campuran, atau tambah/hapus baris. Seluruh hasil di bawah otomatis mengikuti perubahan tabel ini. File asli di laptop tidak akan berubah.")
     edited_df = st.data_editor(raw_df, num_rows="dynamic", hide_index=True, use_container_width=True,
                                key=f"data_editor_{fingerprint}")
-    st.caption("Untuk menyimpan perubahan, unduh hasil yang sudah divalidasi pada tab 'Unduh laporan'.")
+    st.caption("Editor bekerja di sesi browser. CSV asli tidak ditimpa; unduh perubahan jika ingin menyimpannya.")
+    st.download_button("⬇️ Unduh CSV hasil edit", data=edited_df.to_csv(index=False).encode("utf-8-sig"),
+                       file_name="data_beton_hasil_edit.csv", mime="text/csv", key="unduh_editor")
+
+# Audit rinci tersedia SEBELUM validasi mesin, sehingga input salah masih bisa diperbaiki.
+audit = audit_csv(edited_df)
+audit_summary = audit_counts(audit)
+with st.expander(f"🛡️ Audit input — {audit_summary['error']} error, {audit_summary['peringatan']} peringatan",
+                 expanded=bool(audit_summary["error"])):
+    if audit.empty:
+        st.success("Tidak ditemukan masalah format maupun peringatan skrining data.")
+    else:
+        st.dataframe(audit, hide_index=True, use_container_width=True, height=270)
+        st.caption("Baris CSV mengikuti nomor Excel: baris 1 adalah header. Peringatan bukan otomatis kesalahan data.")
+    st.download_button(
+        "Unduh hasil audit (.csv)",
+        data=audit.to_csv(index=False).encode("utf-8-sig"),
+        file_name="audit_input_k4.csv", mime="text/csv", use_container_width=True,
+        key="download_audit_awal",
+    )
+if audit_summary["error"]:
+    st.error("Perbaiki error di tabel editor atau CSV sebelum hasil, grafik, dan PDF dapat dibuat.")
+    st.stop()
 
 try:
     h = analisis(edited_df,target,sumber=label_sumber+" | "+source_name,
@@ -169,7 +204,8 @@ metrics[2].metric("Hasil pengujian",summary["jumlah_uji"])
 metrics[3].metric("Silinder ≥ target",f"{summary['mencapai_target']} / {summary['silinder']}")
 metrics[4].metric("Indikasi outlier",summary["indikasi_outlier"])
 
-tabs = st.tabs(["📊 Ringkasan","📋 Data & statistik","🧪 Evaluasi mutu","📈 Visualisasi","📥 Unduh laporan","ℹ️ Metode"])
+tabs = st.tabs(["📊 Ringkasan", "📋 Data & statistik", "🧪 Evaluasi mutu", "📈 Visualisasi",
+                "📥 Unduh laporan", "ℹ️ Metode", "🧮 Skenario beban", "🔍 Bandingkan CSV", "✅ Audit input"])
 
 with tabs[0]:
     st.markdown("### Hasil utama pengujian")
@@ -260,10 +296,14 @@ with tabs[3]:
 with tabs[4]:
     st.markdown("### Ekspor hasil analisis saat ini")
     st.write("Seluruh file di bawah dihasilkan dari tabel yang sedang digunakan, termasuk perubahan lewat editor CSV.")
+    st.caption("Skenario beban dan dataset pembanding tidak mengubah PDF utama. PDF utama selalu memakai CSV utama yang sudah diedit dan target di sidebar.")
+    # Cache hasil ekspor dengan kunci CSV + parameter agar filter/tombol lain
+    # tidak membuat PDF ulang ketika datanya tidak berubah.
     with st.spinner("Menyiapkan grafik, PDF dan paket hasil..."):
-        graphics=semua_grafik(h)
-        pdf=buat_pdf(h,nama_proyek=nama_proyek,penanggung_jawab=penanggung,grafik=graphics)
-        bundle=buat_zip(h,pdf,graphics,nama_proyek=nama_proyek)
+        current_csv = h.input_data.to_csv(index=False).encode("utf-8")
+        graphics, pdf, bundle = cache_berkas_laporan(
+            current_csv, float(target), nama_proyek, penanggung, h.sumber_data
+        )
     dl1,dl2=st.columns(2)
     with dl1:
         st.download_button("📄 Unduh laporan PDF otomatis",data=pdf,file_name="Laporan_Otomatis_K4_Beton.pdf",mime="application/pdf",use_container_width=True,type="primary")
@@ -308,5 +348,102 @@ Nilai di luar rata-rata ± 2 simpangan baku sampel diberi tanda *indikasi* jika 
     st.code("id_benda_uji,campuran,umur_hari,diameter_mm,beban_maksimum_kN,id_pengujian,urutan_uji\nU01,A,28,150,500,A01,1",language="csv")
     st.caption("Aplikasi lokal dapat diakses pada localhost. Untuk dipublikasikan, gunakan hosting dengan pengamanan dan kebijakan data yang sesuai.")
 
+
+
+with tabs[6]:
+    st.markdown("### Laboratorium simulasi beban (What-if)")
+    st.info("Mode eksplorasi: beban maksimum setiap silinder dikalikan faktor yang sama. Ini **bukan** prediksi kekuatan beton, **bukan** data hasil uji baru, dan tidak mengubah CSV/PDF utama.")
+    delta_p = st.slider("Skenario perubahan semua beban (%)", -50, 100, 10, 1, key="simulasi_beban")
+    alt = simulasi_beban(h, delta_p)
+    base_stat = h.statistik.set_index("campuran")
+    scenario_stat = alt.statistik.set_index("campuran")
+    rows = []
+    for mix in base_stat.index:
+        b=float(base_stat.loc[mix, "rata_rata"])
+        a=float(scenario_stat.loc[mix, "rata_rata"])
+        rows.append({"campuran": mix, "awal_MPa": b, "skenario_MPa": a,
+                     "perubahan_MPa": a-b,
+                     "status_skenario": alt.evaluasi.set_index("campuran").loc[mix,"status"]})
+    comp = pd.DataFrame(rows)
+    st.dataframe(comp.style.format({"awal_MPa":"{:.2f}", "skenario_MPa":"{:.2f}", "perubahan_MPa":"{:+.2f}"}),
+                 hide_index=True, use_container_width=True)
+    sweep = tabel_skenario(h, [-20, -10, 0, 10, 20])
+    chart = px.line(sweep, x="perubahan_beban_persen", y="rata_rata_MPa", color="campuran", markers=True,
+                    title="Sensitivitas rata-rata kuat tekan terhadap perubahan beban", color_discrete_sequence=PALETTE)
+    chart.add_hline(y=target, line_dash="dash", line_color="#C45D4A")
+    chart.update_layout(template="plotly_white", xaxis_title="Perubahan beban (%)", yaxis_title="Rata-rata kuat tekan (MPa)")
+    st.plotly_chart(chart, use_container_width=True)
+    st.download_button("⬇️ Unduh tabel sensitivitas", sweep.to_csv(index=False).encode("utf-8-sig"),
+                       file_name="skenario_sensitivitas_beban.csv", mime="text/csv")
+    st.caption("Tiap skenario menghitung ulang statistik dan status simulasi numerik dari nilai beban baru. Gunakan hanya untuk studi sensitivitas.")
+
+with tabs[7]:
+    st.markdown("### Bandingkan CSV kedua dengan data utama")
+    st.caption("Analisis pembanding tidak mencampur sampel dan tidak menyimpan CSV ke database. Perbandingan memakai nama campuran yang sama jika tersedia.")
+    second = st.file_uploader("Unggah CSV pembanding (opsional)", type=["csv"], key="compare_csv")
+    if second is None:
+        st.info("Unggah CSV kedua untuk membandingkan jumlah silinder, rata-rata, CV, dan selisih kuat tekan antar-dataset.")
+    else:
+        try:
+            if len(second.getvalue()) > 10*1024*1024:
+                raise DataValidationError(["CSV pembanding melebihi 10 MB."])
+            second_df = read_csv(second.getvalue())
+            second_audit = audit_csv(second_df)
+            if audit_counts(second_audit)["error"]:
+                st.error("CSV pembanding mempunyai data tidak valid.")
+                st.dataframe(second_audit[second_audit.tingkat=="Error"], hide_index=True, use_container_width=True)
+            else:
+                second_result = analisis(second_df, target,
+                    sumber="Data pembanding (tidak digabung): " + second.name,
+                    raw_bytes=second.getvalue())
+                combined = bandingkan_dua_analisis(h, second_result)
+                ca, cb = st.columns(2)
+                ca.metric("CSV utama — silinder", h.ringkasan["silinder"])
+                cb.metric("CSV pembanding — silinder", second_result.ringkasan["silinder"])
+                st.dataframe(combined.style.format({
+                    "rata_A_MPa":"{:.2f}", "rata_B_MPa":"{:.2f}",
+                    "cv_A_persen":"{:.2f}", "cv_B_persen":"{:.2f}",
+                    "selisih_B_minus_A_MPa":"{:+.2f}"}, na_rep="—"),
+                    hide_index=True, use_container_width=True)
+                graphdata = pd.concat([
+                    h.statistik[["campuran","rata_rata"]].assign(dataset="CSV utama"),
+                    second_result.statistik[["campuran","rata_rata"]].assign(dataset="CSV pembanding")
+                ], ignore_index=True)
+                chart_cmp = px.bar(graphdata, x="campuran", y="rata_rata", color="dataset", barmode="group",
+                    title="Perbandingan rata-rata antar-CSV", labels={"campuran":"Campuran", "rata_rata":"Kuat tekan (MPa)"})
+                chart_cmp.add_hline(y=target, line_dash="dash", line_color="#C45D4A")
+                chart_cmp.update_layout(template="plotly_white")
+                st.plotly_chart(chart_cmp, use_container_width=True)
+                st.download_button("⬇️ Unduh CSV perbandingan", combined.to_csv(index=False).encode("utf-8-sig"),
+                                   file_name="perbandingan_dua_dataset.csv", mime="text/csv")
+                st.warning("Selisih dua dataset bersifat deskriptif; belum memperhitungkan kesetaraan sampel, umur, kondisi, atau ketidakpastian statistik.")
+        except DataValidationError as exc:
+            for err in exc.problems:
+                st.error(err)
+        except Exception as exc:
+            st.error("CSV pembanding tidak dapat dianalisis. Periksa format file.")
+            st.caption(str(exc))
+
+with tabs[8]:
+    st.markdown("### Hasil audit kualitas input")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Jumlah silinder",len(edited_df))
+    c2.metric("Error input",audit_summary["error"])
+    c3.metric("Catatan/peringatan",audit_summary["peringatan"] + len(h.peringatan))
+    if audit.empty:
+        st.success("Tidak ada temuan audit awal.")
+    else:
+        options = st.multiselect("Tingkat temuan", ["Error", "Peringatan"], default=["Error", "Peringatan"])
+        st.dataframe(audit[audit["tingkat"].isin(options)], hide_index=True,use_container_width=True)
+    st.markdown("#### Catatan validasi mesin")
+    if h.peringatan:
+        for msg in h.peringatan:
+            st.warning(msg)
+    else:
+        st.success("Tidak ada catatan validasi tambahan.")
+    st.download_button("⬇️ Unduh laporan audit (.csv)", audit.to_csv(index=False).encode("utf-8-sig"),
+                       file_name="audit_kualitas_data.csv",mime="text/csv",key="audit_full_download")
+    st.caption("Audit tidak menggantikan pemeriksaan rekaman laboratorium, standar uji, kalibrasi alat, dan otorisasi pemeriksa.")
+
 st.divider()
-st.caption("K4 ConcreteLab Pro • PjBL Teknik Sipil • Data contoh ilustratif • Bukan sertifikat hasil uji laboratorium • Engine Python teruji")
+st.caption("K4 ConcreteLab Pro v2.0 • PjBL Teknik Sipil • Simulasi, bukan sertifikat hasil uji laboratorium • Engine Python teruji")

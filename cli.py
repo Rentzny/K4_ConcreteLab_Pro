@@ -7,6 +7,7 @@ from pathlib import Path
 from concretelab.engine import read_csv,analisis,DataValidationError
 from concretelab.plots import semua_grafik
 from concretelab.reporting import buat_pdf,buat_zip
+from concretelab.quality import audit_csv
 
 
 def main():
@@ -28,7 +29,8 @@ def main():
     pdf=buat_pdf(hasil,a.nama,a.penanggung,figs)
     for filename,figure in figs.items():
         (out/filename).write_bytes(figure)
-    files={"hasil_kuat_tekan.csv":hasil.benda_uji,"statistik_campuran.csv":hasil.statistik,
+    files={"audit_input.csv":audit_csv(hasil.input_data),
+           "hasil_kuat_tekan.csv":hasil.benda_uji,"statistik_campuran.csv":hasil.statistik,
            "rekap_pengujian.csv":hasil.rekap_uji,"evaluasi_simulasi.csv":hasil.evaluasi,
            "jendela_tiga_uji.csv":hasil.jendela_tiga_uji}
     for filename,df in files.items():

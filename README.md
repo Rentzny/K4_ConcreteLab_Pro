@@ -1,3 +1,22 @@
+# K4 ConcreteLab Pro v2.0 — Upload CSV, Smart Audit & What-if
+
+**Pembaruan dari versi PjBL K4 sebelumnya**: audit CSV per baris, editor data, simulasi perubahan beban, perbandingan dua dataset, dan ekspor hasil PDF/ZIP berdasarkan data terkini. Semuanya tetap memakai rumus perhitungan teknik yang sama.
+
+![Status](https://img.shields.io/badge/Python-3.11%20%7C%203.13-blue) ![Data](https://img.shields.io/badge/input-CSV-green)
+
+## Cara paling mudah memperbarui website GitHub
+
+Lihat **`PANDUAN_UPDATE_V2.txt`**. Gunakan paket **PATCH**, salin seluruh isi ke root repository lama (sejajar `app.py`), lalu **Commit to main → Push origin** di GitHub Desktop. Jangan hapus `.git` dan `.venv`.
+
+## Fitur v2.0
+
+- **Audit CSV**: nomor baris, nama kolom, jenis masalah, dan saran perbaikan; kesalahan menghalangi analisis sampai dibetulkan.
+- **Editor CSV**: tambah/hapus/ubah baris secara interaktif, file asli tetap aman.
+- **Skenario beban**: simulasi numerik, bukan prediksi atau hasil pengujian baru.
+- **Bandingkan dua CSV**: tampilkan perbedaan rata-rata, CV, dan jumlah silinder.
+- **PDF/ZIP**: data dan grafik mengikuti CSV aktif; metadata ZIP menyertakan audit.
+- **Pengujian**: jalankan `python -m pytest -q tests` atau lihat tab Actions pada GitHub.
+
 # K4 ConcreteLab Pro
 
 **Aplikasi web dan mesin analisis kuat tekan beton yang dibuat dari proyek PjBL K4 Teknik Sipil.**
@@ -9,7 +28,7 @@ Aplikasi ini melanjutkan notebook `Proyek_K4_Beton_FINAL_PDF_Otomatis.ipynb`. Ru
 ## Fitur yang sudah dibuat
 
 - **Web dashboard** menggunakan Streamlit; dapat dibuka dari browser di laptop/HP jaringan lokal jika konfigurasi firewall mengizinkan.
-- **Upload CSV** dan **editor tabel** untuk mengubah beban, diameter, ID uji, dan menambah/menghapus baris.
+- **Mode upload dahulu (dashboard kosong sebelum ada CSV)** dan **editor tabel** untuk mengubah beban, diameter, ID uji, dan menambah/menghapus baris.
 - **Validasi kuat:** kolom wajib, ID unik, nilai positif/terhingga, pasangan uji, umur, diameter, dan urutan pengujian opsional.
 - **Core Python terpisah**: `BendaUji`, fungsi perhitungan, statistik, koefisien variasi (CV), rekap pasangan, outlier ±2SD.
 - **Evaluasi simulasi** jendela tiga hasil uji berurutan, dua ambang numerik, dan status *tidak dapat dievaluasi* bila data tak memenuhi asumsi.
@@ -26,7 +45,7 @@ Aplikasi ini melanjutkan notebook `Proyek_K4_Beton_FINAL_PDF_Otomatis.ipynb`. Ru
 2. Klik dua kali **`run_windows.bat`** (Windows harus memiliki Python yang bisa dipanggil; skrip akan mencari Python 3.13 terlebih dahulu).
 3. Saat pertama kali dijalankan, skrip membuat `.venv` dan memasang pustaka dari `requirements.txt` (**memerlukan internet**).
 4. Buka **`http://localhost:8501`** di browser jika belum terbuka otomatis.
-5. Tanpa unggahan apa pun, aplikasi langsung memakai data contoh 18 silinder. Unggah `kuat_tekan_beton.csv` milikmu lewat sidebar untuk memakai data lain.
+5. Saat pertama kali dibuka, halaman menampilkan sambutan tanpa statistik, tabel, atau grafik. Unggah `kuat_tekan_beton.csv` lewat sidebar terlebih dahulu; data contoh tidak dimuat otomatis. Kamu dapat mengunduh CSV contoh dari sidebar untuk mencoba aplikasinya.
 6. Sesuaikan f'c di sidebar. Lihat tab Ringkasan, Data & Statistik, Evaluasi, Visualisasi, atau Unduh Laporan.
 7. Unduh **PDF** atau **paket ZIP**. Mengedit tabel di browser **tidak menimpa CSV asli**.
 
