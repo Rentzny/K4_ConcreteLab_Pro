@@ -1,0 +1,24 @@
+K4 CONCRETELAB PRO v3.1 — UPGRADE HOMEPAGE CALM ENGINEERING
+===========================================================
+
+Pembaruan hanya homepage; fitur Service dan modul analisis v3.0 tetap sama.
+
+LANGKAH UPDATE GITHUB DESKTOP
+1. Cadangkan folder aplikasi lama jika diperlukan.
+2. Ekstrak K4_ConcreteLab_Pro_v3_1_UPDATE_GITHUB.zip.
+3. Salin isi hasil ekstraksi ke dalam folder repo K4_ConcreteLab_Pro yang sudah dipakai.
+   Struktur harus langsung app_pages/home.py, bukan folder bersarang tambahan.
+4. Replace file tujuan yang sama. JANGAN hapus .git atau .venv.
+5. Buka GitHub Desktop → Changes → pastikan home.py, CHANGELOG.md, dan file panduan terlihat.
+6. Isi Summary: Refresh minimal elegant homepage v3.1
+7. Commit to main → Push origin.
+8. Periksa deployment Streamlit → buka BERANDA dan SERVICE di desktop dan HP.
+
+HASIL YANG DIHARAPKAN
+- Beranda: judul besar, tombol Mulai analisis, ilustrasi teknis sederhana, tiga kartu fitur.
+- Service: area unggah CSV interaktif tetap tersedia dan fitur v3.0 tetap berfungsi.
+- About: tetap tersedia.
+- Hamburger/navigasi mobile menggunakan navigasi bawaan Streamlit (bergantung versi UI hosting).
+- Beranda tidak langsung menampilkan statistik atau grafik sebelum CSV diunggah di Service.
+
+Jika aplikasi online tidak berubah: periksa bahwa Push origin selesai dan deploy Streamlit berhasil.

@@ -1,3 +1,9 @@
+## v3.1 — Calm Engineering Homepage
+- Beranda diperbarui dengan hero editorial minimalis, ilustrasi skematik beton statis, tiga kartu fitur, dan tombol nyata menuju Service/About.
+- Tampilan responsif untuk desktop dan HP. Tidak ada animasi, auto-play, data atau grafik contoh di halaman Beranda.
+- Gaya CSS di-scope hanya untuk beranda; modul Service, About, perhitungan, ekspor, arsip, dan QR v3.0 tidak diubah.
+- Skema silinder dan rumus pada beranda merupakan ilustrasi konseptual, bukan data pengujian.
+
 # Changelog
 
 ## v3.0 — Portable Project Archive & Report Traceability
