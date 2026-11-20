@@ -17,6 +17,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from .engine import HasilAnalisis
 from .plots import semua_grafik
 from .quality import audit_csv, audit_counts
+from .advanced import statistik_lanjutan, sensitivitas_target, rekap_sensitivitas_target
 
 NAVY = colors.HexColor("#15324C")
 TEAL = colors.HexColor("#12786F")
@@ -200,6 +201,11 @@ def buat_pdf(h: HasilAnalisis, nama_proyek="Proyek K4 - Evaluasi Kuat Tekan Beto
 def buat_zip(h: HasilAnalisis, pdf_bytes: bytes, gambar: dict[str,bytes], nama_proyek: str = "K4 ConcreteLab Pro") -> bytes:
     """Bundel seluruh hasil terbaru tanpa menyimpan data pengguna di server."""
     output=BytesIO()
+    # Hasil tambahan v2.2 diturunkan dari data utama yang sama.
+    tgt_start = max(1.0, float(h.mutu_rencana) - 10.0)
+    tgt_end = min(150.0, float(h.mutu_rencana) + 10.0)
+    target_grid = sorted({round(tgt_start + (tgt_end-tgt_start)*i/40, 3) for i in range(41)} | {float(h.mutu_rencana)})
+    target_detail = sensitivitas_target(h, target_grid)
     files={
         "data/input_tervalidasi.csv":h.input_data,
         "hasil/hasil_kuat_tekan.csv":h.benda_uji,
@@ -208,9 +214,13 @@ def buat_zip(h: HasilAnalisis, pdf_bytes: bytes, gambar: dict[str,bytes], nama_p
         "hasil/evaluasi_simulasi.csv":h.evaluasi,
         "hasil/jendela_tiga_uji.csv":h.jendela_tiga_uji,
         "hasil/audit_input.csv":audit_csv(h.input_data),
+        "hasil/statistik_lanjutan_silinder.csv":statistik_lanjutan(h, "silinder"),
+        "hasil/statistik_lanjutan_per_pengujian.csv":statistik_lanjutan(h, "hasil_uji"),
+        "hasil/sensitivitas_target_mutu.csv":target_detail,
+        "hasil/rekap_sensitivitas_target.csv":rekap_sensitivitas_target(target_detail),
     }
     manifest={
-        "versi_aplikasi":"2.0",
+        "versi_aplikasi":"2.2",
         "audit_input":audit_counts(audit_csv(h.input_data)),
         "nama_proyek":nama_proyek,
         "dibuat_pada":datetime.now().isoformat(timespec="seconds"),

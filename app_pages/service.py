@@ -15,6 +15,7 @@ from concretelab.engine import read_csv, analisis, evaluasi_tiga_uji, DataValida
 from concretelab.plots import semua_grafik
 from concretelab.quality import audit_csv, audit_counts
 from concretelab.scenarios import simulasi_beban, tabel_skenario, bandingkan_dua_analisis
+from concretelab.advanced import statistik_lanjutan, sensitivitas_target, rekap_sensitivitas_target
 from concretelab.reporting import buat_pdf, buat_zip
 
 # Lokasi file ini app_pages/service.py; data/ berada satu tingkat di atas app_pages.
@@ -305,6 +306,62 @@ with tabs[1]:
     st.dataframe(h.rekap_uji,hide_index=True,use_container_width=True)
     st.caption("Standar deviasi menggunakan simpangan baku sampel (ddof=1). CV = SD/rata-rata × 100%. Statistik dihitung per SILINDER, bukan per pasangan pengujian.")
 
+    st.divider()
+    st.markdown("### Statistik lanjutan · distribusi dan ketidakpastian")
+    jenis_stat = st.radio(
+        "Satuan analisis deskriptif",
+        ["silinder", "hasil_uji"],
+        format_func=lambda v: "Per silinder" if v == "silinder" else "Per hasil uji (rata-rata pasangan)",
+        horizontal=True,
+        key="k4_tingkat_statistik",
+    )
+    lanjut = statistik_lanjutan(h, tingkat=jenis_stat)
+    angka_stat = [c for c in lanjut.columns if c.endswith("_MPa") or c.endswith("_persen")]
+    st.dataframe(
+        lanjut.style.format({c: "{:.2f}" for c in angka_stat}, na_rep="—"),
+        hide_index=True, use_container_width=True,
+    )
+    st.download_button(
+        "⬇️ Unduh statistik lanjutan (.csv)",
+        data=lanjut.to_csv(index=False).encode("utf-8-sig"),
+        file_name="statistik_lanjutan_k4.csv", mime="text/csv",
+        key="k4_unduh_stat_lanjut",
+    )
+    pilihan_grafik_stat = st.multiselect(
+        "Campuran pada grafik ketidakpastian",
+        options=lanjut["campuran"].tolist(),
+        default=lanjut["campuran"].tolist(), key="k4_grafik_interval_campuran",
+    )
+    graf_data = lanjut[lanjut["campuran"].isin(pilihan_grafik_stat)]
+    if not graf_data.empty:
+        fig_ci = go.Figure()
+        for i, row in enumerate(graf_data.itertuples(index=False)):
+            value = float(row.mean_MPa)
+            lo, hi = float(row.ci95_rerata_bawah_MPa), float(row.ci95_rerata_atas_MPa)
+            has_ci = np.isfinite(lo) and np.isfinite(hi)
+            fig_ci.add_trace(go.Scatter(
+                x=[str(row.campuran)], y=[value], mode="markers",
+                name=str(row.campuran), marker=dict(size=12, color=PALETTE[i % len(PALETTE)]),
+                error_y=dict(type="data", symmetric=False,
+                             array=[max(0, hi-value)] if has_ci else [0],
+                             arrayminus=[max(0, value-lo)] if has_ci else [0], visible=has_ci),
+                hovertemplate=("Campuran %{x}<br>Rerata %{y:.2f} MPa<extra></extra>"),
+            ))
+        fig_ci.add_hline(y=target, line_dash="dash", line_color="#C45D4A")
+        fig_ci.update_layout(
+            title="Rerata dan interval bootstrap 95% (jika n ≥ 5)",
+            xaxis_title="Campuran", yaxis_title="Kuat tekan (MPa)",
+            template="plotly_white", height=350, showlegend=False,
+        )
+        st.plotly_chart(fig_ci, use_container_width=True)
+    else:
+        st.info("Pilih minimal satu campuran untuk melihat grafik.")
+    st.caption(
+        "P10/P90, kuartil, IQR, dan CV bersifat deskriptif. Interval bootstrap 95% "
+        "untuk rata-rata hanya ditampilkan saat n ≥ 5; pada sampel kecil estimasi masih "
+        "tidak stabil dan bukan kriteria penerimaan mutu beton."
+    )
+
 with tabs[2]:
     st.markdown("### Pemeriksaan numerik penerimaan - simulasi terbatas")
     st.warning("Hasil simulasi mengasumsikan silinder Ø150 mm, umur 28 hari, dua silinder per hasil uji, dan urutan uji valid. Tidak dapat digunakan sebagai sertifikat atau keputusan penerimaan beton.")
@@ -329,6 +386,77 @@ with tabs[2]:
             sensitivity.append({"Target (MPa)":t,"Campuran":r["campuran"],"Status":r["status"],"Min rata 3 uji (MPa)":r["rata_3_terendah_MPa"]})
     st.dataframe(pd.DataFrame(sensitivity),hide_index=True,use_container_width=True)
     st.caption("Perbandingan skenario tidak mengubah hasil utama atau PDF, kecuali parameter target di sidebar diubah.")
+
+    st.divider()
+    st.markdown("### Simulasi interaktif perubahan target mutu")
+    st.caption(
+        "Geser rentang target untuk melihat bagaimana jumlah silinder yang mencapai target "
+        "dan status numerik setiap campuran berubah. Nilai beban dan CSV tidak diubah."
+    )
+    batas_bawah = max(1.0, round((target - 12) * 2) / 2)
+    batas_atas = min(150.0, round((target + 12) * 2) / 2)
+    if batas_bawah >= batas_atas:
+        batas_bawah, batas_atas = max(1.0, target-5.0), min(150.0, target+5.0)
+    low, high = st.slider(
+        "Rentang target yang disimulasikan (MPa)",
+        min_value=1.0, max_value=150.0,
+        value=(float(batas_bawah), float(batas_atas)),
+        step=0.5, key="k4_target_range",
+    )
+    # Maksimum 101 titik agar perubahan slider tetap responsif.
+    t_grid = np.linspace(low, high, 51) if high > low else np.array([low])
+    t_grid = sorted({round(float(v), 3) for v in t_grid} | {float(target)})
+    sweep_target = sensitivitas_target(h, t_grid)
+    ringkas_target = rekap_sensitivitas_target(sweep_target)
+    mix_pick = st.multiselect(
+        "Campuran untuk kurva persentase silinder mencapai target",
+        options=h.statistik["campuran"].tolist(),
+        default=h.statistik["campuran"].tolist(),
+        key="k4_target_mix_filter",
+    )
+    filtered_target = sweep_target[sweep_target["campuran"].isin(mix_pick)]
+    if filtered_target.empty:
+        st.info("Pilih minimal satu campuran untuk melihat kurva.")
+    else:
+        kurva = px.line(
+            filtered_target, x="target_MPa", y="persen_silinder_capai_target",
+            color="campuran", markers=False, color_discrete_sequence=PALETTE,
+            labels={"target_MPa":"Target simulasi (MPa)",
+                    "persen_silinder_capai_target":"Silinder ≥ target (%)", "campuran":"Campuran"},
+            title="Sensitivitas persentase silinder yang mencapai target",
+        )
+        kurva.add_vline(x=target, line_dash="dash", line_color="#C45D4A")
+        kurva.update_layout(template="plotly_white", height=370,
+                            yaxis=dict(range=[0, 105], ticksuffix="%"))
+        st.plotly_chart(kurva, use_container_width=True)
+    cx, cy = st.columns([1.3, 1])
+    with cx:
+        grafik_campuran = px.line(
+            ringkas_target, x="target_MPa", y="memenuhi_simulasi",
+            markers=False, title="Jumlah campuran memenuhi simulasi",
+            labels={"target_MPa":"Target f'c (MPa)", "memenuhi_simulasi":"Jumlah campuran"},
+        )
+        grafik_campuran.add_vline(x=target, line_dash="dash", line_color="#C45D4A")
+        grafik_campuran.update_layout(template="plotly_white", height=300,
+                                      yaxis=dict(dtick=1, rangemode="tozero"))
+        st.plotly_chart(grafik_campuran, use_container_width=True)
+    with cy:
+        st.markdown("#### Ringkasan kondisi sekarang")
+        cur = ringkas_target[np.isclose(ringkas_target["target_MPa"], target)]
+        if not cur.empty:
+            r = cur.iloc[0]
+            st.metric("Campuran memenuhi simulasi", f"{int(r['memenuhi_simulasi'])} dari {int(r['jumlah_campuran'])}")
+            st.metric("Silinder ≥ target", f"{float(r['persen_silinder_capai_target']):.1f}%")
+            if int(r["tidak_dapat_dievaluasi"]) > 0:
+                st.warning(f"{int(r['tidak_dapat_dievaluasi'])} campuran tidak dapat dievaluasi; bukan dianggap gagal.")
+    with st.expander("Tabel simulasi numerik dan cara membacanya"):
+        preview = sweep_target[np.isclose(sweep_target["target_MPa"], target)]
+        st.dataframe(preview, hide_index=True, use_container_width=True)
+        st.caption("Status tiga hasil uji memakai aturan dan asumsi simulasi yang sama dengan hasil utama.")
+    st.download_button("⬇️ Unduh seluruh simulasi target (.csv)",
+                       sweep_target.to_csv(index=False).encode("utf-8-sig"),
+                       file_name="simulasi_target_mutu.csv", mime="text/csv", key="k4_unduh_sensitivitas_target")
+    st.caption("Analisis sensitivitas bukan prediksi kuat tekan. Mengubah target simulasi di sini tidak mengubah PDF utama.")
 
 with tabs[3]:
     st.markdown("### Grafik interaktif")
@@ -355,6 +483,30 @@ with tabs[3]:
     line.update_layout(template="plotly_white",xaxis_title="Urutan hasil uji",yaxis_title="Kuat tekan uji (MPa)",height=360)
     st.plotly_chart(line,use_container_width=True)
     st.caption("Gambar PNG keempat grafik tersedia untuk diunduh dalam paket ZIP. Grafik dari data ilustratif tidak boleh diberi label pengamatan nyata.")
+
+    st.divider()
+    st.markdown("### Distribusi kumulatif (ECDF)")
+    st.caption("Grafik ini menunjukkan proporsi silinder dengan kuat tekan ≤ nilai pada sumbu X; "
+               "pengguna dapat memperbesar area dan memeriksa titik dengan mouse.")
+    pilih_ecdf = st.multiselect(
+        "Campuran pada grafik ECDF",
+        options=h.statistik["campuran"].tolist(),
+        default=h.statistik["campuran"].tolist(), key="k4_ecdf_filter",
+    )
+    bahan_ecdf = h.benda_uji[h.benda_uji["campuran"].isin(pilih_ecdf)]
+    if bahan_ecdf.empty:
+        st.info("Pilih minimal satu campuran untuk melihat distribusi kumulatif.")
+    else:
+        ecdf = px.ecdf(
+            bahan_ecdf, x="kuat_tekan_MPa", color="campuran",
+            ecdfnorm="percent", color_discrete_sequence=PALETTE,
+            title="Persentase kumulatif hasil kuat tekan per campuran",
+        )
+        ecdf.add_vline(x=target, line_dash="dash", line_color="#C45D4A")
+        ecdf.update_layout(template="plotly_white", xaxis_title="Kuat tekan silinder (MPa)",
+                           yaxis_title="Proporsi kumulatif (%)", height=390)
+        st.plotly_chart(ecdf, use_container_width=True)
+    st.caption("Statistik lanjutan dan kurva sensitivitas target dapat diunduh dari tab Data & Statistik dan Evaluasi Mutu.")
 
 with tabs[4]:
     st.markdown("### Ekspor hasil analisis saat ini")
@@ -509,4 +661,4 @@ with tabs[8]:
     st.caption("Audit tidak menggantikan pemeriksaan rekaman laboratorium, standar uji, kalibrasi alat, dan otorisasi pemeriksa.")
 
 st.divider()
-st.caption("K4 ConcreteLab Pro v2.1 • PjBL Teknik Sipil • Simulasi, bukan sertifikat hasil uji laboratorium • Engine Python teruji")
+st.caption("K4 ConcreteLab Pro v2.2 • PjBL Teknik Sipil • Simulasi, bukan sertifikat hasil uji laboratorium • Engine Python teruji")

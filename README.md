@@ -1,6 +1,6 @@
-# K4 ConcreteLab Pro v2.1 — Minimal Engineering
+# K4 ConcreteLab Pro v2.2 — Minimal Engineering + Analitik Lanjutan
 
-Aplikasi Streamlit pengolahan hasil uji kuat tekan beton. Fitur analisis v2.0 dipertahankan, dengan navigasi **Beranda | Service | About** dan homepage minimalis tanpa animasi.
+Aplikasi Streamlit pengolahan hasil uji kuat tekan beton. Fitur analisis v2.0 dipertahankan, dengan navigasi **Beranda | Service | About**, homepage minimalis tanpa animasi, serta statistik lanjutan, grafik interaktif dan simulasi target mutu.
 
 ## Cara menjalankan
 
@@ -37,3 +37,28 @@ Timpa file lama dengan paket update v2.1 **di root repository** (jangan membuat 
 ## Batasan ilmiah
 
 Data contoh bersifat ilustratif. Evaluasi mutu adalah simulasi numerik terbatas, **bukan sertifikat pengujian atau keputusan penerimaan beton nyata**. Tidak ada penyimpanan permanen untuk CSV yang diunggah dan jangan mengunggah data rahasia ke layanan publik tanpa perlindungan yang sesuai.
+
+
+## Upgrade v2.2: statistik lanjutan, grafik & simulasi target
+
+- **Service → Data & statistik:** P10, Q1, median, Q3, P90, IQR, SD, CV,
+  serta interval bootstrap 95% rerata (hanya jika n ≥ 5). Pilih unit per
+  silinder atau per hasil uji. Grafik rerata + rentang bootstrap interaktif.
+- **Service → Evaluasi mutu:** rentang target f'c dapat digeser, kurva
+  persentase silinder mencapai target per campuran dan jumlah campuran
+  memenuhi **simulasi** tiga hasil uji ditampilkan terpisah. Angka “tidak
+  dapat dievaluasi” tidak dianggap “gagal”.
+- **Service → Visualisasi:** distribusi kumulatif interaktif (ECDF) dengan
+  filter campuran dan garis target mutu.
+- **Unduh laporan:** paket ZIP menyertakan CSV statistik lanjutan dan
+  sensitivitas target. PDF tetap berdasarkan target utama dari sidebar.
+- **Kebutuhan:** Tidak ada library tambahan; menggunakan NumPy, pandas,
+  dan Plotly yang sudah tercantum di `requirements.txt`.
+
+Uji mesin perhitungan dengan `python -m pytest -q tests`.
+Tampilan UI Streamlit perlu diperiksa langsung setelah deploy.
+
+**Batasan:** Angka CI bootstrap menggambarkan variasi rerata dalam
+pengambilan ulang sampel secara statistik. Pada data kecil atau tidak
+representatif, interpretasinya terbatas dan tidak memenuhi persyaratan
+penerimaan mutu beton lapangan. Evaluasi mutu tetap simulasi pembelajaran.

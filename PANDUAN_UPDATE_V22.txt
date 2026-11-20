@@ -1,0 +1,39 @@
+K4 CONCRETELAB PRO v2.2 - UPGRADE STATISTIK, GRAFIK INTERAKTIF, SIMULASI MUTU
+================================================================================
+
+PENTING: Ini UPDATE untuk proyek yang SUDAH dipasang v2.1.
+Tidak perlu membuat repository GitHub atau deployment Streamlit baru.
+
+1. Cadangkan folder K4_ConcreteLab_Pro lama bila diinginkan.
+2. Ekstrak K4_ConcreteLab_Pro_v2_2_UPDATE_GITHUB.zip di folder sementara,
+   contohnya Downloads/K4-v22-update (JANGAN langsung ke .venv).
+3. Buka folder ekstraksi dan salin SELURUH ISINYA (app_pages, concretelab,
+   tests, README.md, dll.) ke ROOT folder K4_ConcreteLab_Pro yang lama,
+   sejajar dengan app.py, lalu pilih Replace saat diminta.
+4. Jangan menghapus .git, .venv, app.py, atau file sumber lain.
+5. Di GitHub Desktop, cek perubahan yang seharusnya mencakup:
+   app_pages/service.py, concretelab/advanced.py, concretelab/reporting.py,
+   tests/test_advanced.py, README.md, CHANGELOG.md.
+6. Isi Summary: Upgrade statistik dan simulasi mutu v2.2
+7. Klik Commit to main, lalu Push origin.
+8. Periksa Streamlit Cloud: buka menu Service > unggah CSV > tes statistik,
+   kurva simulasi target, ECDF, lalu unduh ZIP baru.
+
+CARA CEK LOKAL (opsional)
+- Jalankan run_windows_PERBAIKAN.bat dari folder proyek.
+- Di menu Service unduh CSV contoh, kemudian unggah CSV tersebut.
+- Tab Data & statistik: pilih Per silinder / Per hasil uji.
+- Tab Evaluasi mutu: geser rentang target f'c, periksa kurva status.
+- Tab Visualisasi: coba ECDF per campuran.
+- Tab Unduh laporan: unduh ZIP, pastikan ada file statistik_lanjutan*.
+
+CATATAN
+- Skenario perubahan target hanya untuk eksplorasi dan tidak mengganti
+  angka target pada PDF utama sampai target di sidebar diubah.
+- Bila n < 5 maka batas interval bootstrap ditandai kosong (bukan nol).
+- Evaluasi SNI adalah simulasi terbatas; bukan sertifikat hasil lab nyata.
+- Homepage, hamburger/navigasi mobile, dan upload CSV di tengah tidak diubah.
+
+JIKA ERROR
+- Buka Streamlit Cloud > Manage app > Logs lalu kirim baris ERROR.
+- Versi UI Streamlit belum diuji dalam browser pada lingkungan pembuatan ini.
