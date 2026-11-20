@@ -326,11 +326,11 @@ with tabs[0]:
     a, b = st.columns([1.45, 1], gap="large")
     with a:
         st.markdown("**Perbandingan kuat tekan per campuran**")
-        st.plotly_chart(grafik_rerata(h), use_container_width=True)
+        st.plotly_chart(grafik_rerata(h), use_container_width=True, key="k4_executive_rerata")
         st.caption("Error bar = satu simpangan baku sampel. Garis putus-putus = target mutu input.")
     with b:
         st.markdown("**Pencapaian target tiap silinder**")
-        st.plotly_chart(grafik_pencapaian(h), use_container_width=True)
+        st.plotly_chart(grafik_pencapaian(h), use_container_width=True, key="k4_executive_pencapaian")
         st.caption("Persentase pada grafik ini bukan status penerimaan mutu menurut SNI.")
     st.markdown("#### Status evaluasi per campuran")
     kinerja=tabel_kinerja(h)
@@ -410,7 +410,7 @@ with tabs[1]:
             xaxis_title="Campuran", yaxis_title="Kuat tekan (MPa)",
             template="plotly_white", height=350, showlegend=False,
         )
-        st.plotly_chart(fig_ci, use_container_width=True)
+        st.plotly_chart(fig_ci, use_container_width=True, key="k4_statistik_interval_bootstrap")
     else:
         st.info("Pilih minimal satu campuran untuk melihat grafik.")
     st.caption(
@@ -485,7 +485,7 @@ with tabs[2]:
         kurva.add_vline(x=target, line_dash="dash", line_color="#C45D4A")
         kurva.update_layout(template="plotly_white", height=370,
                             yaxis=dict(range=[0, 105], ticksuffix="%"))
-        st.plotly_chart(kurva, use_container_width=True)
+        st.plotly_chart(kurva, use_container_width=True, key="k4_simulasi_target_persentase")
     cx, cy = st.columns([1.3, 1])
     with cx:
         grafik_campuran = px.line(
@@ -496,7 +496,7 @@ with tabs[2]:
         grafik_campuran.add_vline(x=target, line_dash="dash", line_color="#C45D4A")
         grafik_campuran.update_layout(template="plotly_white", height=300,
                                       yaxis=dict(dtick=1, rangemode="tozero"))
-        st.plotly_chart(grafik_campuran, use_container_width=True)
+        st.plotly_chart(grafik_campuran, use_container_width=True, key="k4_simulasi_target_jumlah_campuran")
     with cy:
         st.markdown("#### Ringkasan kondisi sekarang")
         cur = ringkas_target[np.isclose(ringkas_target["target_MPa"], target)]
@@ -530,21 +530,21 @@ with tabs[3]:
         a,b=st.columns(2, gap="medium")
         with a:
             st.markdown("**Distribusi kuat tekan silinder**")
-            st.plotly_chart(grafik_histogram(visual_result), use_container_width=True)
+            st.plotly_chart(grafik_histogram(visual_result), use_container_width=True, key="k4_visual_histogram")
         with b:
             st.markdown("**Sebaran dan variasi antar-campuran**")
-            st.plotly_chart(grafik_box(visual_result), use_container_width=True)
+            st.plotly_chart(grafik_box(visual_result), use_container_width=True, key="k4_visual_boxplot")
         st.divider()
         c,d=st.columns(2, gap="medium")
         with c:
             st.markdown("**Tren berdasarkan urutan pengujian**")
-            st.plotly_chart(grafik_tren(visual_result), use_container_width=True)
+            st.plotly_chart(grafik_tren(visual_result), use_container_width=True, key="k4_visual_tren")
         with d:
             st.markdown("**Perbandingan rerata ± SD**")
-            st.plotly_chart(grafik_rerata(visual_result), use_container_width=True)
+            st.plotly_chart(grafik_rerata(visual_result), use_container_width=True, key="k4_visual_rerata")
         st.divider()
         st.markdown("**Distribusi kumulatif / ECDF**")
-        st.plotly_chart(grafik_ecdf(visual_result), use_container_width=True)
+        st.plotly_chart(grafik_ecdf(visual_result), use_container_width=True, key="k4_visual_ecdf")
         st.caption("ECDF memperlihatkan proporsi silinder dengan kuat tekan tidak melebihi nilai tertentu; tidak sama dengan peluang penerimaan mutu.")
     st.caption("Filter hanya memengaruhi grafik pada tab ini. PDF dan hasil utama tetap menggunakan seluruh CSV yang tervalidasi.")
     st.caption("Grafik PNG versi cetak tersedia dalam paket hasil ZIP.")
@@ -628,7 +628,7 @@ with tabs[6]:
                     title="Sensitivitas rata-rata kuat tekan terhadap perubahan beban", color_discrete_sequence=PALETTE)
     chart.add_hline(y=target, line_dash="dash", line_color="#C45D4A")
     chart.update_layout(template="plotly_white", xaxis_title="Perubahan beban (%)", yaxis_title="Rata-rata kuat tekan (MPa)")
-    st.plotly_chart(chart, use_container_width=True)
+    st.plotly_chart(chart, use_container_width=True, key="k4_skenario_beban_sensitivitas")
     st.download_button("⬇️ Unduh tabel sensitivitas", sweep.to_csv(index=False).encode("utf-8-sig"),
                        file_name="skenario_sensitivitas_beban.csv", mime="text/csv")
     st.caption("Tiap skenario menghitung ulang statistik dan status simulasi numerik dari nilai beban baru. Gunakan hanya untuk studi sensitivitas.")
@@ -669,7 +669,7 @@ with tabs[7]:
                     title="Perbandingan rata-rata antar-CSV", labels={"campuran":"Campuran", "rata_rata":"Kuat tekan (MPa)"})
                 chart_cmp.add_hline(y=target, line_dash="dash", line_color="#C45D4A")
                 chart_cmp.update_layout(template="plotly_white")
-                st.plotly_chart(chart_cmp, use_container_width=True)
+                st.plotly_chart(chart_cmp, use_container_width=True, key="k4_perbandingan_csv_grafik")
                 st.download_button("⬇️ Unduh CSV perbandingan", combined.to_csv(index=False).encode("utf-8-sig"),
                                    file_name="perbandingan_dua_dataset.csv", mime="text/csv")
                 st.warning("Selisih dua dataset bersifat deskriptif; belum memperhitungkan kesetaraan sampel, umur, kondisi, atau ketidakpastian statistik.")
