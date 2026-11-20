@@ -338,7 +338,7 @@ with tabs[1]:
         for i, row in enumerate(graf_data.itertuples(index=False)):
             value = float(row.mean_MPa)
             lo, hi = float(row.ci95_rerata_bawah_MPa), float(row.ci95_rerata_atas_MPa)
-            has_ci = np.isfinite(lo) and np.isfinite(hi)
+            has_ci = bool(np.isfinite(lo) and np.isfinite(hi))
             fig_ci.add_trace(go.Scatter(
                 x=[str(row.campuran)], y=[value], mode="markers",
                 name=str(row.campuran), marker=dict(size=12, color=PALETTE[i % len(PALETTE)]),
