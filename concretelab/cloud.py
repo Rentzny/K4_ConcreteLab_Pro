@@ -32,6 +32,8 @@ def validate_config(url: str, key: str) -> tuple[str, str]:
     parsed = urlsplit(url)
     if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password:
         raise CloudConfigError('URL Supabase harus HTTPS yang valid.')
+    if parsed.path not in ('', '/') or parsed.query or parsed.fragment:
+        raise CloudConfigError('Gunakan Project URL saja, tanpa /rest/v1, /auth/v1, query, atau path lainnya.')
     if len(key) < 24:
         raise CloudConfigError('Supabase publishable/anon key belum diatur dengan benar.')
     if key.startswith('sb_secret_') or key.startswith('sb_service_'):
@@ -211,7 +213,7 @@ def verify_report(client,token:str):
 
 
 def get_profile(client,user_id:str):
-    rows=client.table('k4_profiles').select('user_id,email,display_name,global_role').eq('user_id',str(user_id)).execute().data or []
+    rows=client.table('k4_profiles').select('user_id,email,display_name,global_role,account_status').eq('user_id',str(user_id)).execute().data or []
     return rows[0] if rows else None
 
 
@@ -227,3 +229,26 @@ def add_member(client,project_id:str,user_id:str,role:str):
 
 def delete_member(client,project_id:str,user_id:str):
     return client.table('k4_project_members').delete().eq('project_id',project_id).eq('user_id',user_id).execute().data
+
+
+def invite_account_by_email(client, settings: tuple[str, str], email: str):
+    """Optional invite through authenticated Supabase Edge Function, no service key here.
+
+    Inviting is disabled until owner deploys k4-admin-invite Edge Function.
+    Admin is verified in Edge Function on EVERY call, not by Streamlit UI.
+    """
+    import httpx
+    email=email.strip().lower()
+    if '@' not in email or len(email)>254 or len(email)<5 or any(c.isspace() for c in email):
+        raise ValueError('Email undangan tidak valid')
+    url, public_key=validate_config(*settings)
+    session=client.auth.get_session()
+    if session is None or not session.access_token:
+        raise ValueError('Login administrator diperlukan')
+    response=httpx.post(url+'/functions/v1/k4-admin-invite',json={'email':email},headers={
+        'Authorization':'Bearer '+session.access_token,
+        'apikey':public_key,'Content-Type':'application/json',
+    },timeout=15.0)
+    if response.status_code!=200:
+        raise ValueError('Undangan gagal. Periksa deployment Edge Function dan hak admin.')
+    return True

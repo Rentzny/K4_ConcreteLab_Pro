@@ -1,0 +1,18 @@
+K4 CONCRETELAB PRO v6.0 — UPGRADE AMAN
+====================================
+1) BACKUP Supabase database dan folder GitHub. Pastikan v5.5 sudah terpasang.
+2) Supabase Dashboard > SQL Editor: jalankan schema_v60.sql SETELAH schema_v55.sql.
+3) Tetapkan akun admin pertama secara MANUAL lewat SQL Editor (contoh tersedia di docs/PANDUAN_UPGRADE_V60_ID.md).
+4) Pastikan Streamlit Secrets menggunakan supabase.url + publishable_key (bukan secret/service role key).
+5) Barulah salin paket UPDATE v6.0 ke root repo lama; jangan hapus .git/.venv.
+6) GitHub Desktop > Changes > Commit to main > Push origin.
+7) Login sebagai admin; buka menu Administrator. Pilih preset akses Tamu.
+8) Tes dengan browser incognito sebagai tamu lalu akun biasa, cek batasan fitur & data.
+9) Fitur undang akun langsung dari aplikasi OPSIONAL: deploy Edge Function Supabase secara terpisah.
+
+PENTING: Tamu bisa diizinkan memakai SEMUA FITUR ANALISIS PUBLIK, tetapi tidak bisa
+mengelola akun, membuka proyek orang lain, menyetujui laporan, atau mengakses
+hasil rahasia cloud. Jika database tidak dapat diakses, mode tamu pada konfigurasi
+Supabase akan ditutup demi keamanan.
+
+Baca docs/PANDUAN_UPGRADE_V60_ID.md sebelum memulai.

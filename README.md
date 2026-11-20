@@ -1,3 +1,27 @@
+# K4 ConcreteLab Pro v7.0 — Unified Administrator Dashboard
+
+**Pembaruan dari v5.5 langsung ke v7.0** (sudah mencakup kode v6.0 dan perbaikan sesi login v6.0.1). Menu Administrator menyediakan KPI akun/proyek/laporan, 13 izin tamu, persetujuan pengguna, perubahan peran, dan audit. Fitur analisis beton, QR sampel, dan proyek cloud tetap tersedia.
+
+**Panduan utama:** [`docs/PANDUAN_UPGRADE_V70_ID.md`](docs/PANDUAN_UPGRADE_V70_ID.md).
+
+Untuk proyek Supabase yang **sudah** memasang schema v5.5 dan v6.0, **tidak perlu menjalankan SQL lagi**. Backup repo lalu salin isi UPDATE v7.0 ke repository dan Push. Opsi "Ingat Saya" memerlukan tambahan rahasia `auth_persistence.fernet_key` dan pengujian cookie browser; fitur ini tidak wajib untuk login normal. **Login Google belum tersedia.**
+
+---
+
+# K4 ConcreteLab Pro v6.0 — Admin & Guest Control
+
+**Panduan pemasangan utama:** [`docs/PANDUAN_UPGRADE_V60_ID.md`](docs/PANDUAN_UPGRADE_V60_ID.md).
+
+Versi ini menambahkan login/pendaftaran Supabase, persetujuan akun, panel administrator, 13 pengaturan fitur tamu, dan tiga preset. Fitur analisis beton, grafik dan PDF lama tetap ada. Data proyek cloud dibatasi RLS; admin tidak boleh menggunakan service_role di Streamlit.
+
+**Urutan penting:** backup → jalankan SQL v5.5 jika belum ada → jalankan migrasi `supabase/schema_v60.sql` → promosikan admin pertama melalui SQL Editor → periksa Secrets Streamlit → update GitHub. Jika SQL belum dijalankan, akses tamu pada deployment Supabase ditutup (fail closed).
+
+**Pembuatan akun:** pengguna mendaftar melalui menu Akun, lalu Admin menyetujui. Admin juga dapat mengundang lewat Supabase Auth Dashboard, atau lewat Edge Function opsional jika dideploy terpisah.
+
+**Catatan:** 13 izin tamu mengatur fitur publik dalam Service, tidak membuka akun admin atau data privat.
+
+---
+
 # K4 ConcreteLab Pro v4.0 — Professional Visual Analytics & Reporting
 
 
@@ -113,8 +137,8 @@ python -m pytest -q tests
 Versi ini belum menyediakan **akun multiuser, otentikasi, database permanen pada cloud, tanda tangan digital, atau verifikasi QR melalui server publik**. Untuk sistem laboratorium produksi diperlukan backend aman, backup, audit, dan verifikasi standar pengujian.
 
 ---
-## Upgrade v5.5: Akun & Proyek Cloud
+## Upgrade v6.0: Akun & Proyek Cloud
 
-Tambahan v5.5: email/password lewat Supabase Auth, mode tamu, proyek privat, snapshot CSV, anggota proyek, laporan dengan alur review, audit log, verifikasi QR metadata. **SQL dan Secrets belum otomatis terpasang** — lihat [`docs/PANDUAN_V55_ID.md`](docs/PANDUAN_V55_ID.md). SQL ada di `supabase/schema_v55.sql`.
+Tambahan v6.0: email/password lewat Supabase Auth, mode tamu, proyek privat, snapshot CSV, anggota proyek, laporan dengan alur review, audit log, verifikasi QR metadata. **SQL dan Secrets belum otomatis terpasang** — lihat [`docs/PANDUAN_V55_ID.md`](docs/PANDUAN_V55_ID.md). SQL ada di `supabase/schema_v55.sql`.
 
 Untuk mengaktifkan: buat proyek Supabase; jalankan SQL; isi Streamlit Cloud Secrets berdasarkan `supabase/secrets.example.toml`; lalu tes dengan dua akun dummy. Jangan menggunakan `service_role` ataupun mengunggah password ke GitHub. Login Google, penyimpanan PDF Cloud Storage dan tanda tangan digital belum termasuk dalam rilis ini. Jika Supabase tidak dikonfigurasi, **Beranda, Service, About** tetap dapat dipakai secara normal sebagai tamu.

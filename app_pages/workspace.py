@@ -26,6 +26,9 @@ uid=str(user.id)
 try: profile=get_profile(client,uid) or {}
 except Exception: profile={}
 is_admin=profile.get('global_role')=='admin'
+if profile.get('account_status') != 'active':
+    st.warning('Akses workspace menunggu persetujuan admin atau sedang ditangguhkan.')
+    st.stop()
 
 with st.expander('Buat proyek baru',expanded=False):
     with st.form('create_project'):

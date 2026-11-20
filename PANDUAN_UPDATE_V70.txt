@@ -1,0 +1,13 @@
+ConcreteLab Pro v7.0 — UPDATE LANGSUNG DARI v5.5
+
+1. DATABASE: schema_v5.5 dan migrasi schema_v6.0 sudah Anda jalankan sebelumnya; JANGAN jalankan ulang.
+2. ZIP: unduh K4_ConcreteLab_Pro_v7_0_UPDATE_GITHUB.zip dan ekstrak.
+3. Salin ISI ZIP ke folder repo GitHub yang sama dengan app.py; replace file lama. Jangan hapus .git/.venv.
+4. GitHub Desktop: Commit to main > Push origin. Tunggu aplikasi deploy, lalu reload.
+5. Menu Akun: login dengan akun Administrator yang SUDAH ADA. Buka menu Administrator yang baru.
+6. Dashboard: tab Ringkasan, Akses Tamu, Pengguna & Akun, Audit & Keamanan.
+7. F5 login tetap aktif hanya bila Anda menambahkan [auth_persistence] fernet_key di Streamlit Secrets,
+   mencentang Ingat Saya saat login, dan cookie browser bisa bekerja.
+8. Panduan rinci ada di docs/PANDUAN_UPGRADE_V70_ID.md.
+
+JANGAN commit Secrets ke GitHub. Validasi akun/RLS dan cookie perlu diuji secara langsung di Streamlit Cloud.

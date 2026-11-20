@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS public.k4_snapshots (
   project_id uuid NOT NULL REFERENCES public.k4_projects(id) ON DELETE CASCADE,
   author_id uuid NOT NULL REFERENCES auth.users(id),
   csv_text text NOT NULL CHECK (octet_length(csv_text) BETWEEN 10 AND 10485760),
-  csv_sha256 text GENERATED ALWAYS AS (encode(digest(convert_to(csv_text,'UTF8'),'sha256'),'hex')) STORED,
+  csv_sha256 text GENERATED ALWAYS AS (encode(digest(csv_text,'sha256'),'hex')) STORED,
   target_mpa numeric NOT NULL CHECK (target_mpa>0 AND target_mpa<=150),
   note text NOT NULL DEFAULT '' CHECK (char_length(note)<=500),
   created_at timestamptz NOT NULL DEFAULT now()

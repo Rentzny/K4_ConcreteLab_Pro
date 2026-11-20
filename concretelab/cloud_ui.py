@@ -1,6 +1,7 @@
 """Streamlit session adapter; client never shared across users."""
 import streamlit as st
 from .cloud import get_supabase_settings,new_client,authenticated_user
+from .persistent_session import restore_if_possible, sync_cookie_if_opted_in, clear_browser_remember_cookie
 
 CLIENT_KEY = 'k4_cloud_client_private_session'
 
@@ -12,15 +13,34 @@ def cloud_client():
     if old is None or old_settings!=settings:
         st.session_state[CLIENT_KEY]=new_client(*settings)
         st.session_state['k4_cloud_settings']=settings
-    return st.session_state[CLIENT_KEY]
+    client = st.session_state[CLIENT_KEY]
+    # Restore encrypted, opt-in refresh token after a full browser reload.
+    # Supabase validates it and issues new tokens; never trust a cookie as identity.
+    if not st.session_state.get('k4_persist_attempted'):
+        try:
+            if client.auth.get_session() is None:
+                restore_if_possible(client, settings, st.secrets, st.session_state)
+        except Exception:
+            pass
+    return client
 
 
 def signed_user():
     client=cloud_client()
-    return client,authenticated_user(client)
+    user = authenticated_user(client)
+    if user is not None:
+        # Supabase refresh tokens rotate; always persist the NEW refresh token.
+        sync_cookie_if_opted_in(client, st.session_state.get('k4_cloud_settings'),
+                                st.secrets, st.session_state)
+    return client, user
 
 
 def logout():
+    # Remove the browser cookie first, then invalidate the Supabase session.
+    clear_browser_remember_cookie()
+    st.session_state.pop('k4_remember_enabled', None)
+    st.session_state.pop('k4_persist_current_token', None)
+    st.session_state.pop('k4_persist_attempted', None)
     client=st.session_state.get(CLIENT_KEY)
     if client:
         try: client.auth.sign_out()

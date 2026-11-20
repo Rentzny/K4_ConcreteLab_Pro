@@ -1,14 +1,23 @@
-"""ConcreteLab Pro v5.5 — analisis tamu + workspace berbasis Supabase RLS."""
+"""ConcreteLab Pro v7.0 — Unified Administrator & Smart Concrete Workspace."""
 from pathlib import Path
 import streamlit as st
 
 ROOT = Path(__file__).resolve().parent
 st.set_page_config(
-    page_title="ConcreteLab Pro | Analisis Kuat Tekan Beton",
+    page_title="ConcreteLab Pro v7 | Laboratorium Beton",
     page_icon="🏗️",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+# Mount cookie bridge at the app root, even when changing navigation pages.
+# The "Ingat saya" option is opt-in and encrypts the Supabase refresh token.
+try:
+    from concretelab.persistent_session import mount_cookie_controller
+    mount_cookie_controller()
+except Exception:
+    # Do not prevent normal session-only logins if cookies are blocked.
+    pass
 
 # Desain minimal: tidak memakai animasi, efek neon, parallax, atau overlay kustom.
 st.markdown("""
@@ -70,5 +79,13 @@ service = st.Page("app_pages/service.py", title="Service", icon="🧪", url_path
 about = st.Page("app_pages/about.py", title="About", icon="ℹ️", url_path="about")
 workspace = st.Page("app_pages/workspace.py", title="Proyek Saya", icon="📁", url_path="projects")
 account = st.Page("app_pages/account.py", title="Akun", icon="👤", url_path="account")
-nav = st.navigation([home, service, about, workspace, account], position="top")
+pages=[home, service, about, workspace, account]
+try:
+    from concretelab.policy_ui import current_policy
+    _,signed_in,profile=current_policy()
+    if signed_in is not None and profile and profile.get('account_status')=='active' and profile.get('global_role')=='admin':
+        pages.append(st.Page('app_pages/admin.py',title='Administrator',icon='🛡️',url_path='admin'))
+except Exception:
+    pass
+nav = st.navigation(pages, position="top")
 nav.run()

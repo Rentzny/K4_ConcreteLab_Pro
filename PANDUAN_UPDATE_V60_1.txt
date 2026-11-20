@@ -1,0 +1,11 @@
+K4 ConcreteLab Pro v6.0.1 HOTFIX PERSISTENT LOGIN
+
+1. Ekstrak isi ZIP ini ke root repo K4_ConcreteLab_Pro (sejajar app.py).
+2. Timpa file lama; jangan hapus .git / .venv.
+3. Commit + Push melalui GitHub Desktop.
+4. Di Streamlit Secrets tambahkan [auth_persistence] fernet_key, sebagaimana
+   dijelaskan pada PANDUAN_FIX_LOGIN_V60_ID.md.
+5. Login lagi dengan mencentang Ingat saya 7 hari, kemudian uji F5 dan Logout.
+6. Tidak perlu mengulang SQL Supabase.
+
+Status: tests lokal lulus, browser Cloud belum diuji langsung.

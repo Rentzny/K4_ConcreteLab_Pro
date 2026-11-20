@@ -70,3 +70,13 @@
 - Tidak menggunakan data buatan untuk hasil; semua analisis berasal dari CSV aktif.
 - Catatan metodologis: interval bootstrap hanya ilustrasi ketidakpastian rerata, bukan
   kriteria penerimaan beton atau jaminan mutu untuk sampel kecil.
+
+## 6.0 — Admin Control Center & Guest Access
+
+- Akun baru melalui Supabase Auth masuk dengan status **pending**; admin aktif dapat menyetujui atau menangguhkan.
+- Menu **Administrator**: kontrol 13 kemampuan tamu satu per satu dan tiga preset (Semua Analisis, Dasar, Nonaktif).
+- Kontrol tamu disimpan di `k4_public_settings` Supabase; perubahan harus melewati RPC admin yang memverifikasi hak server.
+- Fitur upload CSV, editor, dashboard, statistik, evaluasi, grafik, simulasi, bandingkan, audit, laporan, arsip lokal, dan tracking mengikuti hak tamu yang dipilih.
+- Mode tamu tetap tidak mendapat izin cloud project, manajemen akun, audit admin, atau report approval.
+- Audit log perubahan admin, migrasi RLS untuk status akun, serta opsi undangan email aman melalui Edge Function Supabase (opsional).
+- **Wajib:** migrasi `supabase/schema_v60.sql` dan bootstrap admin sebelum deploy UI v6.0.
