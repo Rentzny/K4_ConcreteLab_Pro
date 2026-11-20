@@ -1,3 +1,17 @@
+# Changelog ConcreteLab Pro
+
+## v5.0 — Sample Tracking & Testing Schedule
+
+- Tambah tab **Sampel & Jadwal** pada Service. Tidak mengubah halaman Beranda dan About.
+- Registrasi berdasarkan ID/umur data CSV, tanggal tidak dibuat secara otomatis.
+- Validasi tanggal, umur rencana dan konsistensi ID.
+- Status jadwal, KPI, filter, dan grafik Plotly per tanggal/campuran.
+- Pencarian manual dengan kode QR hasil scan HP.
+- Unduh registrasi CSV, label QR PDF A4, kalender iCalendar (.ics).
+- Tambah contoh registrasi yang dinyatakan ilustratif dan tes modul baru.
+- Mesin analisis beton, PDF mutu, arsip ZIP dan hasil v4.0 tidak diubah.
+- Database cloud, login, reminder, integrasi mesin CTM belum tersedia.
+
 # Changelog
 
 ## v4.0 — Professional Visual Analytics & Reporting

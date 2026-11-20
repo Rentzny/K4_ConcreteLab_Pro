@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 import hashlib
 import math
+from datetime import date
+from zoneinfo import ZoneInfo
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -22,6 +24,9 @@ from concretelab.professional import ringkasan_eksekutif, tabel_kinerja, interpr
 from concretelab.visuals_v4 import (grafik_rerata, grafik_histogram, grafik_box, grafik_tren, grafik_pencapaian, grafik_ecdf)
 from concretelab.projects import (buat_arsip_proyek, baca_arsip_proyek,
                                    LocalHistoryStore, ProjectArchiveError, report_id_for, sha256)
+from concretelab.tracking import (buat_template_registrasi, validasi_registrasi,
+                                  jadwal_pengujian, label_qr_pdf, kalender_ics,
+                                  export_registrasi_csv, kode_qr_sampel, TrackingError)
 
 # Lokasi file ini app_pages/service.py; data/ berada satu tingkat di atas app_pages.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -310,7 +315,7 @@ metrics[3].metric("Silinder ≥ target",f"{summary['mencapai_target']} / {summar
 metrics[4].metric("Indikasi outlier",summary["indikasi_outlier"])
 
 tabs = st.tabs(["📊 Executive Summary", "📋 Data & statistik", "🧪 Evaluasi mutu", "📈 Visual Analytics",
-                "📥 Unduh laporan", "ℹ️ Metode", "🧮 Skenario beban", "🔍 Bandingkan CSV", "✅ Audit input", "📁 Proyek & Riwayat"])
+                "📥 Unduh laporan", "ℹ️ Metode", "🧮 Skenario beban", "🔍 Bandingkan CSV", "✅ Audit input", "📁 Proyek & Riwayat", "🗓️ Sampel & Jadwal"])
 
 with tabs[0]:
     st.markdown("### Executive Summary")
@@ -781,3 +786,167 @@ with tabs[9]:
                 "`K4_ENABLE_LOCAL_HISTORY=1`. Arsip portabel tetap bisa disimpan dan dibuka tanpa database.")
     st.caption("Untuk penggunaan laboratorium multiuser yang sebenarnya, diperlukan backend database terkelola, "
                "autentikasi, pembatasan akses, backup, dan audit keamanan sebelum menyimpan data proyek permanen.")
+
+# ---------------------------------------------------------------------------
+# v5.0 — Pelacakan benda uji dan jadwal. Tanggal tidak ditebak dari CSV lama.
+# ---------------------------------------------------------------------------
+with tabs[10]:
+    st.markdown('### Manajemen Sampel & Jadwal Pengujian')
+    st.caption('Alat pencatatan operasional: tanggal pengecoran dan tanggal aktual harus diisi pengguna. '
+               'Tidak mengubah perhitungan kuat tekan maupun simulasi penerimaan SNI.')
+    st.info('Data registrasi hanya ada di sesi browser. Untuk menyimpannya, unduh CSV registrasi. '
+            'Saat website dibuka kembali, unggah CSV utama dan registrasi hasil unduhan.')
+
+    # Fingerprint mengikuti data utama; pindah tab tidak menghapus registrasi.
+    hash_utama = hashlib.sha256(h.input_data.to_csv(index=False).encode('utf-8')).hexdigest()[:16]
+    k_base = 'k4_tracker_source'
+    k_df = 'k4_tracker_records'
+    k_rev = 'k4_tracker_revision'
+    ids_utama = h.input_data['id_benda_uji'].astype(str).tolist()
+    camp_map = dict(zip(h.input_data['id_benda_uji'].astype(str), h.input_data['campuran'].astype(str)))
+    if st.session_state.get(k_base) != hash_utama:
+        st.session_state[k_base] = hash_utama
+        st.session_state[k_df] = buat_template_registrasi(h.input_data)
+        st.session_state[k_rev] = 0
+        st.session_state.pop('k4_tracker_import_hash', None)
+    st.markdown('#### 1. Isi data registrasi')
+    st.caption('Kolom tanggal harus ditulis sebagai **YYYY-MM-DD**. Kosong berarti belum diketahui. '
+               'Tanggal pengecoran tidak diisi otomatis agar tidak menimbulkan data laboratorium fiktif.')
+    upload_register = st.file_uploader(
+        'Impor CSV registrasi yang pernah disimpan (opsional)',
+        type=['csv'], key=f'k4_tracker_import_{hash_utama}',
+        help='Gunakan CSV registrasi yang diunduh dari aplikasi ini; ID harus sama dengan CSV utama.'
+    )
+    if upload_register is not None:
+        incoming_bytes = upload_register.getvalue()
+        incoming_hash = hashlib.sha256(incoming_bytes).hexdigest()
+        if st.session_state.get('k4_tracker_import_hash') != incoming_hash:
+            try:
+                if len(incoming_bytes) > 10 * 1024 * 1024:
+                    raise TrackingError('CSV registrasi terlalu besar (maksimal 10 MB).')
+                incoming = pd.read_csv(BytesIO(incoming_bytes), dtype=str, keep_default_na=False, encoding='utf-8-sig')
+                incoming = validasi_registrasi(incoming, ids_utama)
+                # Campuran selalu merujuk data utama, bukan CSV registrasi.
+                incoming['campuran'] = incoming['id_benda_uji'].map(camp_map)
+                st.session_state[k_df] = incoming
+                st.session_state[k_rev] += 1
+                st.session_state['k4_tracker_import_hash'] = incoming_hash
+                st.success('Registrasi CSV dipulihkan. Silakan periksa tanggalnya di tabel.')
+            except (TrackingError, ValueError, pd.errors.ParserError, UnicodeDecodeError) as err:
+                st.error(f'Impor registrasi gagal: {err}')
+
+    col_batch, col_fill = st.columns([1.6, 1], gap='small')
+    with col_batch:
+        mass_date = st.date_input('Tanggal pengecoran untuk pengisian massal (opsional)',
+                                  value=None, key='k4_tracker_batch_date')
+    with col_fill:
+        st.write('')
+        fill_batch = st.button('Isi tanggal kosong', key='k4_tracker_fill_dates',
+                               help='Hanya mengisi tanggal cetak yang masih kosong; tidak menimpa yang sudah diisi.')
+    if fill_batch:
+        if mass_date is None:
+            st.warning('Pilih tanggal pengecoran terlebih dahulu.')
+        else:
+            reg = st.session_state[k_df].copy()
+            mask=reg['tanggal_cetak'].fillna('').astype(str).str.strip().eq('')
+            reg.loc[mask,'tanggal_cetak'] = mass_date.isoformat()
+            st.session_state[k_df] = reg
+            st.session_state[k_rev] += 1
+            st.rerun()
+
+    edit_key=f'k4_tracker_editor_{hash_utama}_{st.session_state[k_rev]}'
+    edited_reg = st.data_editor(
+        st.session_state[k_df], hide_index=True, num_rows='fixed',
+        disabled=['id_benda_uji','campuran'], use_container_width=True,
+        key=edit_key,
+        column_config={
+            'id_benda_uji': st.column_config.TextColumn('ID sampel'),
+            'campuran': st.column_config.TextColumn('Campuran'),
+            'tanggal_cetak': st.column_config.TextColumn('Tanggal pengecoran (YYYY-MM-DD)'),
+            'umur_rencana_hari': st.column_config.NumberColumn('Umur rencana (hari)', min_value=1, max_value=3650, step=1),
+            'tanggal_uji_aktual': st.column_config.TextColumn('Tanggal uji aktual (YYYY-MM-DD)'),
+        }
+    )
+    # Tanggal tidak diisi secara implisit; keadaan editor ini hanya ada di sesi.
+    st.session_state[k_df] = edited_reg.copy()
+    try:
+        reg_valid = validasi_registrasi(edited_reg, ids_utama)
+        reg_valid['campuran'] = reg_valid['id_benda_uji'].map(camp_map)
+    except TrackingError as err:
+        st.error(f'Perbaiki registrasi sebelum melihat jadwal: {err}')
+        st.stop()
+
+    st.download_button('⬇️ Simpan registrasi (.csv)', export_registrasi_csv(reg_valid),
+                       file_name='registrasi_sampel_k4.csv', mime='text/csv',
+                       key='k4_tracker_download_registration')
+    st.divider()
+    st.markdown('#### 2. Jadwal dan status')
+    # Kalender berdasarkan tanggal Jakarta. Aplikasi cloud dapat berada di zona waktu lain.
+    try:
+        acuan_default = pd.Timestamp.now(tz='Asia/Jakarta').date()
+    except Exception:
+        acuan_default = date.today()
+    acuan=st.date_input('Tanggal acuan peninjauan', value=acuan_default,
+                        key='k4_tracker_asof', help='Ganti tanggal untuk meninjau jadwal pada hari lain.')
+    schedule=jadwal_pengujian(reg_valid, tanggal_acuan=acuan)
+    status_counts=schedule['status_jadwal'].value_counts().to_dict()
+    cells=st.columns(4)
+    cells[0].metric('Total sampel',len(schedule))
+    cells[1].metric('Terjadwal',status_counts.get('Terjadwal',0))
+    cells[2].metric('Jatuh tempo / terlambat',status_counts.get('Jatuh tempo',0)+status_counts.get('Terlambat',0))
+    cells[3].metric('Sudah diuji',status_counts.get('Sudah diuji',0)+status_counts.get('Diuji lebih awal',0))
+    st.caption('Status ini hanya berdasarkan tanggal, **bukan hasil lulus/tidak lulus mutu**. '
+               'Sampel pada CSV awal belum otomatis dianggap sudah diuji sampai tanggal aktual diisi.')
+    pilih_status=st.multiselect('Filter status jadwal', options=sorted(schedule['status_jadwal'].unique()),
+                                 default=sorted(schedule['status_jadwal'].unique()),key='k4_tracker_status_filter')
+    filtered=schedule[schedule['status_jadwal'].isin(pilih_status)]
+    st.dataframe(filtered,hide_index=True,use_container_width=True,
+                 column_config={'sisa_hari':st.column_config.NumberColumn('Hari menuju jadwal', format='%d')})
+    if status_counts.get('Terlambat',0):
+        st.warning(f"Ada {status_counts['Terlambat']} sampel dengan jadwal terlewat berdasarkan tanggal acuan. "
+                   'Verifikasi apakah pengujiannya sudah dilakukan sebelum mengambil tindakan.')
+    pending=schedule[schedule['status_jadwal'].isin(['Terjadwal', 'Jatuh tempo','Terlambat'])]
+    if not pending.empty:
+        per_tanggal=pending.groupby(['tanggal_jadwal','campuran'],as_index=False).size().rename(columns={'size':'jumlah'})
+        fig_jadwal=px.bar(per_tanggal,x='tanggal_jadwal',y='jumlah',color='campuran',
+                          barmode='group',color_discrete_sequence=PALETTE,
+                          title='Jumlah sampel per tanggal rencana pengujian',
+                          labels={'tanggal_jadwal':'Tanggal pengujian','jumlah':'Jumlah sampel','campuran':'Campuran'})
+        fig_jadwal.update_layout(margin=dict(l=10,r=10,t=55,b=10),
+                                 plot_bgcolor='#FFFFFF',paper_bgcolor='#FFFFFF')
+        st.plotly_chart(fig_jadwal,use_container_width=True,key='k4_tracking_schedule_chart')
+    st.divider()
+    st.markdown('#### Cari sampel dengan hasil scan QR')
+    scan_value=st.text_input('Tempel kode QR dari pemindai atau hasil scan HP',
+                            placeholder='K4S1-...',key='k4_tracking_scan_lookup')
+    if scan_value.strip():
+        lookup = {kode_qr_sampel(nama_proyek, r['id_benda_uji']):r for _,r in schedule.iterrows()}
+        item = lookup.get(scan_value.strip().upper())
+        if item is None:
+            st.warning('Kode tidak ditemukan pada registrasi ini. Pastikan nama proyek dan CSV sama.')
+        else:
+            st.success(f"Sampel ditemukan: {item['id_benda_uji']} • Campuran {item['campuran']}")
+            st.write(f"Status: **{item['status_jadwal']}** • Rencana: {item['tanggal_jadwal'] or 'Belum ada'}")
+    st.caption('Pindai QR menggunakan kamera/QR scanner HP, lalu tempel kodenya ke sini. '
+               'Pemindaian langsung di dalam browser dan verifikasi online belum tersedia.')
+    st.divider()
+    st.markdown('#### 3. Ekspor kalender dan label QR')
+    c_ics,c_qr=st.columns(2,gap='medium')
+    with c_ics:
+        ics_data=kalender_ics(schedule,nama_proyek=nama_proyek)
+        st.download_button('📆 Unduh jadwal (.ics)',ics_data,
+                           file_name='jadwal_uji_beton.ics',mime='text/calendar',
+                           use_container_width=True,key='k4_tracker_calendar_download')
+        st.caption('Dapat diimpor ke aplikasi kalender. Kalender berisi sampel yang belum ditandai sudah diuji.')
+    with c_qr:
+        if st.button('Siapkan PDF label QR',key='k4_tracker_prepare_labels',use_container_width=True):
+            with st.spinner('Membuat label...'):
+                st.session_state['k4_tracker_pdf_label'] = label_qr_pdf(reg_valid, nama_proyek=nama_proyek)
+                st.session_state['k4_tracker_pdf_key'] = (hash_utama,nama_proyek,hashlib.sha256(export_registrasi_csv(reg_valid)).hexdigest())
+        expected=(hash_utama,nama_proyek,hashlib.sha256(export_registrasi_csv(reg_valid)).hexdigest())
+        if st.session_state.get('k4_tracker_pdf_key') == expected:
+            st.download_button('⬇️ Download label QR (.pdf)',st.session_state['k4_tracker_pdf_label'],
+                               file_name='label_qr_benda_uji.pdf',mime='application/pdf',
+                               key='k4_tracker_label_download',use_container_width=True)
+        st.caption('QR hanya berisi identitas sampel yang di-hash, **belum terhubung ke database atau halaman verifikasi online**.')
+    st.caption('Pengingat otomatis ke WhatsApp/email belum tersedia. File kalender hanya dibuat saat pengguna mengunduhnya.')

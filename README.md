@@ -1,5 +1,34 @@
 # K4 ConcreteLab Pro v4.0 — Professional Visual Analytics & Reporting
 
+
+## Fitur baru v5.0 - Pelacakan Benda Uji & Jadwal
+
+Pembaruan v5.0 menambahkan tab **Service → Sampel & Jadwal**, tanpa mengganti alur analisis CSV, visualisasi, PDF hasil, ataupun arsip v4.0.
+
+1. Unggah CSV utama hasil kuat tekan melalui **Service**. Buka tab **Sampel & Jadwal**.
+2. Program membuat **draft registrasi** dari ID benda uji, campuran, dan umur rencana di CSV. **Tanggal pengecoran dan tanggal uji sengaja kosong**; keduanya harus dicatat pengguna.
+3. Isi `tanggal_cetak` (`YYYY-MM-DD`), `umur_rencana_hari` (hari), dan jika sudah diuji `tanggal_uji_aktual` (`YYYY-MM-DD`). Bisa gunakan pengisian massal untuk tanggal cetak yang masih kosong.
+4. Jadwal dihitung dari `tanggal_cetak + umur_rencana_hari`. Status yang tersedia: **Belum dijadwalkan, Terjadwal, Jatuh tempo, Terlambat, Sudah diuji, Diuji lebih awal**. Status tanggal **tidak menyatakan beton lolos/tidak lolos mutu**.
+5. Tampilkan tabel, filter status dan grafik jadwal, lalu unduh **CSV registrasi**, **kalender .ics**, atau **label QR PDF**. QR hanya berisi kode sampel (bukan URL server / tanda tangan digital). Jika kode QR dipindai menggunakan HP, tempelkan hasilnya ke kotak pencarian pada tab untuk membuka baris data di sesi ini.
+6. Untuk melanjutkan pada sesi lain, unduh CSV registrasi lalu unggah ulang setelah CSV beton utama. Tidak ada database cloud atau pengingat otomatis ke email/WhatsApp pada versi ini.
+
+**Demo tambahan:** `data/contoh_registrasi_18_silinder.csv` menyediakan contoh tanggal *ilustratif*, bukan dokumen pengujian nyata. Gunakan bersama `data/contoh_18_silinder.csv`.
+
+**Privasi & integritas:** jangan unggah data pelanggan/laboratorium yang bersifat rahasia ke aplikasi publik tanpa kontrol akses. Berkas registrasi disimpan hanya di sesi Streamlit, bukan secara otomatis di database. Pastikan pengguna mengunduh CSV registrasi untuk cadangan. Data jadwal tidak terintegrasi ke evaluasi penerimaan beton SNI.
+
+## Cara memasang v5.0 dari GitHub Desktop
+
+- Sebelum mengganti file, buat cadangan folder/repository lokal.
+- Ekstrak `K4_ConcreteLab_Pro_v5_0_UPDATE_GITHUB.zip`, lalu **salin isi ZIP** ke akar repository `K4_ConcreteLab_Pro` (selevel `app.py`), pilih **Replace** jika diminta.
+- Jangan hapus `.git`, `.venv`, atau file pribadi di luar repository.
+- Di GitHub Desktop periksa **Changes**, lalu **Commit to main → Push origin**.
+- Setelah Streamlit selesai redeploy, buka Service, unggah `data/contoh_18_silinder.csv`, lalu buka **Sampel & Jadwal**.
+- Unggah `data/contoh_registrasi_18_silinder.csv` di tab tersebut untuk melihat contoh jadwal terisi, lalu uji ekspor PDF dan kalender.
+- Jalankan tes dengan `python -m pytest -q tests` menggunakan environment yang sudah terinstal dependensi.
+
+**Batas pengujian:** modul Python, generator PDF label, kalender dan tes regresi sudah diuji. Tampilan Streamlit v5.0 masih memerlukan uji nyata di browser setelah deployment. Login Google, database cloud permanen, dan verifikasi QR online belum dibuat; fitur ini tidak mengharuskan pemasangan pustaka Python baru.
+
+
 Aplikasi analisis kuat tekan beton berbasis **Streamlit**. Website mempunyai menu **Beranda | Service | About**, tampilan minimalis, serta area unggah CSV besar di tengah halaman Service. Sebelum CSV valid diunggah, **tidak ada grafik, tabel analisis, atau PDF** yang ditampilkan.
 
 ## Peningkatan v4.0 (berdasarkan versi 3.1)

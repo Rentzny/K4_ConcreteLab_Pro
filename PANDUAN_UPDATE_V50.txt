@@ -1,0 +1,22 @@
+K4 ConcreteLab Pro v5.0 - Petunjuk pembaruan GitHub Desktop
+
+1. Download K4_ConcreteLab_Pro_v5_0_UPDATE_GITHUB.zip.
+2. Ekstrak ZIP ke folder sementara.
+3. Salin seluruh isi ZIP ke folder proyek K4_ConcreteLab_Pro yang SUDAH ADA,
+   sejajar dengan app.py. Pilih Replace files in destination bila diminta.
+4. JANGAN menghapus .git, .venv, atau membuat folder K4_ConcreteLab_Pro
+   di dalam folder K4_ConcreteLab_Pro (nested folder).
+5. Buka GitHub Desktop dan cek Changes: app_pages/service.py, file
+   concretelab/tracking.py, tests/test_tracking.py, serta README dan contoh.
+6. Commit: Add sample tracking and QR test schedule v5.0
+7. Klik Push origin lalu tunggu deployment Streamlit berhasil.
+8. Buka website > Service > unggah data/contoh_18_silinder.csv.
+9. Buka tab Sampel & Jadwal; unggah data/contoh_registrasi_18_silinder.csv
+   untuk demo, lalu unduh label QR PDF dan kalender ICS.
+
+Catatan:
+- Datum tanggal pada contoh hanya ilustrasi.
+- Jadwal bukan penilaian mutu beton SNI.
+- QR tidak membuka database online; tempelkan hasil scan ke tab pencarian.
+- Tanpa login, database cloud permanen, atau pengingat terjadwal.
+- Semua hasil registrasi harus disimpan sendiri melalui CSV.
