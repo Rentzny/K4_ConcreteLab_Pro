@@ -19,7 +19,7 @@ from zipfile import BadZipFile, ZipFile, ZIP_DEFLATED
 
 from .engine import HasilAnalisis, read_csv, analisis
 
-APP_VERSION = "3.0"
+APP_VERSION = "4.0"
 SCHEMA_VERSION = 1
 MAX_ARCHIVE_BYTES = 25 * 1024 * 1024
 MAX_UNCOMPRESSED_BYTES = 38 * 1024 * 1024

@@ -1,0 +1,44 @@
+K4 CONCRETELAB PRO v4.0 - PROFESSIONAL VISUAL ANALYTICS & REPORTING
+===================================================================
+
+PAKET INI UNTUK REPOSITORY YANG SUDAH MENGGUNAKAN v3.1.
+
+A. PASANG UPDATE
+1. Buat backup folder K4_ConcreteLab_Pro di luar folder repository.
+2. Ekstrak K4_ConcreteLab_Pro_v4_0_UPDATE_GITHUB.zip di folder Downloads.
+3. BUKA hasil ekstraksi dan SALIN SEMUA ISINYA (bukan folder induk ZIP).
+4. Tempel di root K4_ConcreteLab_Pro yang ada app.py dan requirements.txt.
+5. Jika Windows bertanya, pilih Replace existing files.
+6. JANGAN hapus folder .git atau .venv.
+
+B. KIRIM KE GITHUB
+1. Buka GitHub Desktop, repository K4_ConcreteLab_Pro, branch main.
+2. Cek daftar Changes dan pastikan ada app_pages/service.py,
+   concretelab/professional.py, concretelab/visuals_v4.py,
+   concretelab/reporting.py, concretelab/plots.py dan tests/test_v4.py.
+3. Isi Summary: Upgrade Professional Visual Analytics v4.0
+4. Klik Commit to main -> Push origin.
+5. Periksa GitHub Actions dan Streamlit Manage app untuk error deploy.
+
+C. UJI WEBSITE
+1. Buka Beranda: tetap sederhana, tidak ada hasil CSV otomatis.
+2. Pilih Service: sebelum upload, tampil area unggah interaktif.
+3. Unggah CSV contoh; data statistik dan 6 grafik interaktif seharusnya muncul.
+4. Buka Executive Summary, Data & statistik, Visual Analytics,
+   Evaluasi mutu, Unduh laporan, Proyek & Riwayat.
+5. Unduh PDF dan ZIP. PDF dengan data contoh menghasilkan 6 halaman.
+6. Ubah nilai pada CSV atau target: grafik, KPI dan PDF harus mengikuti analisis terbaru.
+
+D. HAL YANG TIDAK BERUBAH
+- Menu Beranda | Service | About (responsive).
+- Tabel editor dan audit CSV, simulasi mutu, skenario beban, bandingkan CSV.
+- Arsip proyek portable, hash/QR, fitur riwayat SQLite lokal (opsional).
+- Tidak ada penyimpanan permanen di Streamlit Cloud secara otomatis.
+- QR bukan tanda tangan digital dan evaluasi numerik bukan penerimaan mutu nyata.
+
+E. TES LOKAL
+pip install -r requirements-dev.txt
+python -m pytest -q tests
+
+Jika terjadi error pada website, screenshot traceback/log dari Manage app dan
+kirim bersama nama file serta nomor baris supaya dapat diperbaiki tepat sasaran.

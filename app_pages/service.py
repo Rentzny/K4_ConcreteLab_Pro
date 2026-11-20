@@ -1,4 +1,4 @@
-"""K4 ConcreteLab Pro v3.0 - Service, analisis CSV, dan arsip proyek portabel."""
+"""K4 ConcreteLab Pro v4.0 - analitik profesional, grafik dan arsip proyek."""
 from __future__ import annotations
 
 from io import BytesIO
@@ -18,6 +18,8 @@ from concretelab.quality import audit_csv, audit_counts
 from concretelab.scenarios import simulasi_beban, tabel_skenario, bandingkan_dua_analisis
 from concretelab.advanced import statistik_lanjutan, sensitivitas_target, rekap_sensitivitas_target
 from concretelab.reporting import buat_pdf, buat_zip
+from concretelab.professional import ringkasan_eksekutif, tabel_kinerja, interpretasi_per_campuran
+from concretelab.visuals_v4 import (grafik_rerata, grafik_histogram, grafik_box, grafik_tren, grafik_pencapaian, grafik_ecdf)
 from concretelab.projects import (buat_arsip_proyek, baca_arsip_proyek,
                                    LocalHistoryStore, ProjectArchiveError, report_id_for, sha256)
 
@@ -40,7 +42,7 @@ def cache_berkas_laporan(csv_bytes: bytes, target: float, nama: str, penanggung:
 
 # Halaman Service - fitur inti K4 ConcreteLab Pro v2 tetap dipertahankan.
 st.title("Service")
-st.caption("Analisis kuat tekan beton dari CSV • Grafik interaktif • Laporan PDF • Arsip proyek")
+st.caption("Analisis kuat tekan beton • Ringkasan profesional • Visual Analytics • PDF otomatis • Arsip proyek")
 st.caption("Sesudah mengunggah CSV, pengaturan target mutu dapat dibuka melalui sidebar di sisi kiri.")
 st.divider()
 
@@ -307,32 +309,48 @@ metrics[2].metric("Hasil pengujian",summary["jumlah_uji"])
 metrics[3].metric("Silinder ≥ target",f"{summary['mencapai_target']} / {summary['silinder']}")
 metrics[4].metric("Indikasi outlier",summary["indikasi_outlier"])
 
-tabs = st.tabs(["📊 Ringkasan", "📋 Data & statistik", "🧪 Evaluasi mutu", "📈 Visualisasi",
+tabs = st.tabs(["📊 Executive Summary", "📋 Data & statistik", "🧪 Evaluasi mutu", "📈 Visual Analytics",
                 "📥 Unduh laporan", "ℹ️ Metode", "🧮 Skenario beban", "🔍 Bandingkan CSV", "✅ Audit input", "📁 Proyek & Riwayat"])
 
 with tabs[0]:
-    st.markdown("### Hasil utama pengujian")
-    left,right=st.columns([1.3,1])
-    with left:
-        stat = h.statistik.copy()
-        fig=go.Figure()
-        fig.add_trace(go.Bar(x=stat["campuran"], y=stat["rata_rata"], name="Rata-rata",marker_color=[PALETTE[i%len(PALETTE)] for i in range(len(stat))],
-                             error_y=dict(type="data",array=stat["simpangan_baku"].fillna(0),visible=True)))
-        fig.add_hline(y=target, line_dash="dash",line_color="#C45D4A",annotation_text=f"Target {target:g} MPa")
-        fig.update_layout(title="Rata-rata dan simpangan baku",xaxis_title="Campuran",yaxis_title="Kuat tekan (MPa)",
-                          template="plotly_white",height=380,margin=dict(l=15,r=15,b=35,t=60))
-        st.plotly_chart(fig,use_container_width=True)
-    with right:
-        st.markdown("#### Evaluasi simulasi")
-        for _,r in h.evaluasi.iterrows():
-            ico="🟢" if r["status"]=="Memenuhi simulasi" else "🔴" if r["status"]=="Belum memenuhi simulasi" else "🟠"
-            st.write(f"{ico} **Campuran {r['campuran']}** — {r['status']}")
-        st.divider()
-        st.markdown("**Interpretasi awal**")
-        best=h.statistik.loc[h.statistik["rata_rata"].idxmax()]
-        st.write(f"Campuran **{best['campuran']}** memiliki rata-rata tertinggi: **{best['rata_rata']:.2f} MPa**.")
-        st.caption("Status simulasi bukan persetujuan/penerimaan mutu beton nyata.")
-    st.caption("Seluruh angka dan grafik berasal dari CSV aktif. Edit tabel atau unggah CSV lain untuk memperbarui hasil.")
+    st.markdown("### Executive Summary")
+    st.caption("Ringkasan dihasilkan otomatis dari CSV aktif dan mutu rencana yang dipilih; tidak ada angka contoh tetap.")
+    ex = ringkasan_eksekutif(h)
+    top1 = st.columns(4)
+    top1[0].metric("Jumlah silinder", f"{ex.jumlah_silinder:,}")
+    top1[1].metric("Hasil uji", f"{ex.jumlah_uji:,}")
+    top1[2].metric("Rerata seluruh silinder", f"{ex.rata_rata_mpa:.2f} MPa")
+    top1[3].metric("Silinder mencapai target", f"{ex.persen_silinder_target:.1f}%")
+    st.markdown("#### Ikhtisar teknis")
+    st.write(ex.deskripsi)
+    a, b = st.columns([1.45, 1], gap="large")
+    with a:
+        st.markdown("**Perbandingan kuat tekan per campuran**")
+        st.plotly_chart(grafik_rerata(h), use_container_width=True)
+        st.caption("Error bar = satu simpangan baku sampel. Garis putus-putus = target mutu input.")
+    with b:
+        st.markdown("**Pencapaian target tiap silinder**")
+        st.plotly_chart(grafik_pencapaian(h), use_container_width=True)
+        st.caption("Persentase pada grafik ini bukan status penerimaan mutu menurut SNI.")
+    st.markdown("#### Status evaluasi per campuran")
+    kinerja=tabel_kinerja(h)
+    st.dataframe(kinerja.style.format({
+        "rata_rata_MPa":"{:.2f}","simpangan_baku_MPa":"{:.2f}",
+        "cv_persen":"{:.2f}%", "pencapaian_target_persen":"{:.1f}%",
+        "rasio_rerata_ke_target_persen":"{:.1f}%",
+    }, na_rep="—"), hide_index=True, use_container_width=True)
+    st.markdown("#### Interpretasi otomatis berdasarkan data")
+    for note in interpretasi_per_campuran(h):
+        st.write("•", note)
+    with st.expander("Catatan metodologis penting", expanded=True):
+        for note in ex.catatan:
+            st.caption("• " + note)
+    st.download_button(
+        "⬇️ Unduh ringkasan kinerja per campuran (.csv)",
+        kinerja.to_csv(index=False).encode("utf-8-sig"),
+        file_name="ringkasan_kinerja_campuran.csv", mime="text/csv",
+        key="k4_v4_download_performance",
+    )
 
 with tabs[1]:
     st.markdown("### Data hasil perhitungan")
@@ -498,54 +516,38 @@ with tabs[2]:
     st.caption("Analisis sensitivitas bukan prediksi kuat tekan. Mengubah target simulasi di sini tidak mengubah PDF utama.")
 
 with tabs[3]:
-    st.markdown("### Grafik interaktif")
-    sub=st.columns(2)
-    with sub[0]:
-        hist=px.histogram(h.benda_uji,x="kuat_tekan_MPa",color="campuran",nbins=18,
-                          color_discrete_sequence=PALETTE,title="Distribusi kuat tekan silinder")
-        hist.add_vline(x=target,line_dash="dash",line_color="#C45D4A")
-        hist.update_layout(template="plotly_white",xaxis_title="Kuat tekan (MPa)",yaxis_title="Frekuensi",height=380)
-        st.plotly_chart(hist,use_container_width=True)
-    with sub[1]:
-        box=px.box(h.benda_uji,x="campuran",y="kuat_tekan_MPa",points="all",color="campuran",
-                    color_discrete_sequence=PALETTE,title="Sebaran kuat tekan per campuran")
-        box.add_hline(y=target,line_dash="dash",line_color="#C45D4A")
-        box.update_layout(template="plotly_white",xaxis_title="Campuran",yaxis_title="Kuat tekan (MPa)",height=380)
-        st.plotly_chart(box,use_container_width=True)
-    st.markdown("### Tren hasil uji")
-    seq=h.rekap_uji.copy()
-    seq["urutan_plot"]=seq.groupby("campuran").cumcount()+1
-    line=px.line(seq,x="urutan_plot",y="kuat_tekan_uji_MPa",color="campuran",markers=True,
-                  hover_data=["id_pengujian"], color_discrete_sequence=PALETTE,
-                  title="Rata-rata per pasangan uji (sesuai urutan)")
-    line.add_hline(y=target,line_dash="dash",line_color="#C45D4A")
-    line.update_layout(template="plotly_white",xaxis_title="Urutan hasil uji",yaxis_title="Kuat tekan uji (MPa)",height=360)
-    st.plotly_chart(line,use_container_width=True)
-    st.caption("Gambar PNG keempat grafik tersedia untuk diunduh dalam paket ZIP. Grafik dari data ilustratif tidak boleh diberi label pengamatan nyata.")
-
-    st.divider()
-    st.markdown("### Distribusi kumulatif (ECDF)")
-    st.caption("Grafik ini menunjukkan proporsi silinder dengan kuat tekan ≤ nilai pada sumbu X; "
-               "pengguna dapat memperbesar area dan memeriksa titik dengan mouse.")
-    pilih_ecdf = st.multiselect(
-        "Campuran pada grafik ECDF",
-        options=h.statistik["campuran"].tolist(),
-        default=h.statistik["campuran"].tolist(), key="k4_ecdf_filter",
+    st.markdown("### Visual Analytics")
+    st.caption("Warna setiap campuran konsisten; grafik dapat di-zoom, diperbesar, dan dibaca melalui hover.")
+    pilihan=st.multiselect(
+        "Campuran ditampilkan", options=h.statistik["campuran"].astype(str).tolist(),
+        default=h.statistik["campuran"].astype(str).tolist(), key="k4_v4_filter_visual",
     )
-    bahan_ecdf = h.benda_uji[h.benda_uji["campuran"].isin(pilih_ecdf)]
-    if bahan_ecdf.empty:
-        st.info("Pilih minimal satu campuran untuk melihat distribusi kumulatif.")
+    if not pilihan:
+        st.info("Pilih setidaknya satu campuran untuk menampilkan grafik.")
     else:
-        ecdf = px.ecdf(
-            bahan_ecdf, x="kuat_tekan_MPa", color="campuran",
-            ecdfnorm="percent", color_discrete_sequence=PALETTE,
-            title="Persentase kumulatif hasil kuat tekan per campuran",
-        )
-        ecdf.add_vline(x=target, line_dash="dash", line_color="#C45D4A")
-        ecdf.update_layout(template="plotly_white", xaxis_title="Kuat tekan silinder (MPa)",
-                           yaxis_title="Proporsi kumulatif (%)", height=390)
-        st.plotly_chart(ecdf, use_container_width=True)
-    st.caption("Statistik lanjutan dan kurva sensitivitas target dapat diunduh dari tab Data & Statistik dan Evaluasi Mutu.")
+        d=h.input_data[h.input_data['campuran'].astype(str).isin(pilihan)]
+        visual_result = h if len(d)==len(h.input_data) else analisis(d, target, sumber=h.sumber_data)
+        a,b=st.columns(2, gap="medium")
+        with a:
+            st.markdown("**Distribusi kuat tekan silinder**")
+            st.plotly_chart(grafik_histogram(visual_result), use_container_width=True)
+        with b:
+            st.markdown("**Sebaran dan variasi antar-campuran**")
+            st.plotly_chart(grafik_box(visual_result), use_container_width=True)
+        st.divider()
+        c,d=st.columns(2, gap="medium")
+        with c:
+            st.markdown("**Tren berdasarkan urutan pengujian**")
+            st.plotly_chart(grafik_tren(visual_result), use_container_width=True)
+        with d:
+            st.markdown("**Perbandingan rerata ± SD**")
+            st.plotly_chart(grafik_rerata(visual_result), use_container_width=True)
+        st.divider()
+        st.markdown("**Distribusi kumulatif / ECDF**")
+        st.plotly_chart(grafik_ecdf(visual_result), use_container_width=True)
+        st.caption("ECDF memperlihatkan proporsi silinder dengan kuat tekan tidak melebihi nilai tertentu; tidak sama dengan peluang penerimaan mutu.")
+    st.caption("Filter hanya memengaruhi grafik pada tab ini. PDF dan hasil utama tetap menggunakan seluruh CSV yang tervalidasi.")
+    st.caption("Grafik PNG versi cetak tersedia dalam paket hasil ZIP.")
 
 with tabs[4]:
     st.markdown("### Ekspor hasil analisis saat ini")
@@ -561,10 +563,10 @@ with tabs[4]:
     dl1,dl2=st.columns(2)
     with dl1:
         st.download_button("📄 Unduh laporan PDF otomatis",data=pdf,file_name="Laporan_Otomatis_K4_Beton.pdf",mime="application/pdf",use_container_width=True,type="primary")
-        st.caption("Laporan PDF multi-halaman berisi data terbaru, 2 grafik, rekap statistik, evaluasi mutu dan tabel benda uji.")
+        st.caption("Laporan PDF v4 berisi ringkasan eksekutif, empat grafik, tabel kinerja, evaluasi mutu, data rinci, dan QR.")
     with dl2:
         st.download_button("📦 Unduh SEMUA hasil (.zip)",data=bundle,file_name="Paket_Lengkap_Hasil_K4_Beton.zip",mime="application/zip",use_container_width=True,type="primary")
-        st.caption("ZIP: CSV input, CSV hasil, evaluasi, empat PNG, PDF serta metadata dan hash input.")
+        st.caption("ZIP: CSV input, analisis dan ringkasan profesional, empat grafik, PDF v4, serta metadata dan hash.")
     st.divider()
     colA,colB,colC=st.columns(3)
     colA.download_button("CSV kuat tekan",data=h.benda_uji.to_csv(index=False).encode("utf-8-sig"),file_name="hasil_kuat_tekan.csv",mime="text/csv",use_container_width=True)

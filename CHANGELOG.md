@@ -1,3 +1,15 @@
+# Changelog
+
+## v4.0 — Professional Visual Analytics & Reporting
+- Ringkasan eksekutif dinamis dari data CSV, tabel kinerja/status per campuran, dan interpretasi teknis non-spekulatif.
+- Enam grafik Plotly diperhalus untuk desktop dan mobile, menggunakan warna campuran konsisten dan filter.
+- Empat grafik cetak Matplotlib diperbarui untuk PDF otomatis.
+- PDF contoh 18 silinder: 6 halaman A4, meliputi ringkasan profesional, 4 grafik, evaluasi numerik, data rinci, dan QR fingerprint.
+- ZIP ekspor sekarang memuat ringkasan kinerja dan ringkasan TXT; metadata versi 4.0.
+- Fitur arsip `.k4proj.zip` tetap kompatibel dengan skema sebelumnya; SQLite lokal masih nonaktif di cloud.
+- UI Beranda minimalis v3.1 dan upload CSV pada Service tetap dipertahankan.
+- Pengujian regresi proyek diperluas untuk hasil dinamis dan ekspor v4.
+
 ## v3.1 — Calm Engineering Homepage
 - Beranda diperbarui dengan hero editorial minimalis, ilustrasi skematik beton statis, tiga kartu fitur, dan tombol nyata menuju Service/About.
 - Tampilan responsif untuk desktop dan HP. Tidak ada animasi, auto-play, data atau grafik contoh di halaman Beranda.

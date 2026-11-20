@@ -21,6 +21,7 @@ from .engine import HasilAnalisis
 from .plots import semua_grafik
 from .quality import audit_csv, audit_counts
 from .advanced import statistik_lanjutan, sensitivitas_target, rekap_sensitivitas_target
+from .professional import ringkasan_eksekutif, tabel_kinerja, interpretasi_per_campuran
 
 NAVY = colors.HexColor("#15324C")
 TEAL = colors.HexColor("#12786F")
@@ -109,7 +110,7 @@ def _draw_page(canvas, doc):
     canvas.rect(0,H-14*mm,W,14*mm,fill=1,stroke=0)
     canvas.setFont("Helvetica-Bold",8.2)
     canvas.setFillColor(colors.white)
-    canvas.drawString(16*mm,H-9.1*mm,"K4 | CONCRETELAB PRO")
+    canvas.drawString(16*mm,H-9.1*mm,"K4 | CONCRETELAB PRO 4.0")
     canvas.setFont("Helvetica",7)
     canvas.setFillColor(SLATE)
     canvas.line(16*mm,15*mm,W-16*mm,15*mm)
@@ -129,45 +130,69 @@ def buat_pdf(h: HasilAnalisis, nama_proyek="Proyek K4 - Evaluasi Kuat Tekan Beto
     def add(txt,style="K4Body"): story.append(_p(txt,s[style]))
     def section(txt): add(txt,"K4H1")
 
-    # HALAMAN 1 - ringkasan
-    story.append(Spacer(1,8*mm))
-    add("LAPORAN HASIL ANALISIS", "K4Subtitle")
-    add("KUAT TEKAN BETON", "K4Title")
-    add(nama_proyek, "K4Subtitle")
-    add("Ringkasan eksekutif | terbit otomatis dari data CSV", "K4Small")
-    story.append(Spacer(1,7*mm))
+    # HALAMAN 1 — Ikhtisar profesional; seluruh angka dari CSV aktif.
+    ex = ringkasan_eksekutif(h)
     k=h.ringkasan
-    labels=[(str(k["silinder"]),"BENDA UJI"),(str(k["campuran"]),"CAMPURAN"),(str(k["jumlah_uji"]),"HASIL UJI"),(_number(h.mutu_rencana),"TARGET (MPa)")]
+    story.append(Spacer(1,5*mm))
+    add("LAPORAN TEKNIS | ANALISIS KUAT TEKAN", "K4Subtitle")
+    add("CONCRETE STRENGTH ANALYSIS", "K4Title")
+    add(nama_proyek, "K4Subtitle")
+    add("Versi 4.0 • data dinamis • laporan simulasi, bukan sertifikat laboratorium", "K4Small")
+    story.append(Spacer(1,6*mm))
+    labels=[(str(ex.jumlah_silinder),"BENDA UJI"),(str(ex.jumlah_uji),"HASIL UJI"),
+            (_number(ex.rata_rata_mpa),"RERATA (MPa)"),(_number(ex.target_mpa),"TARGET (MPa)")]
     area=W-32*mm
-    kp = Table([[_kpi(val,lbl,area/4,s) for val,lbl in labels]],colWidths=[area/4]*4)
-    kp.setStyle(TableStyle([("VALIGN",(0,0),(-1,-1),"TOP"),("LEFTPADDING",(0,0),(-1,-1),3),("RIGHTPADDING",(0,0),(-1,-1),3)]))
+    kp=Table([[_kpi(val,lbl,area/4,s) for val,lbl in labels]],colWidths=[area/4]*4)
+    kp.setStyle(TableStyle([("VALIGN",(0,0),(-1,-1),"TOP"),("LEFTPADDING",(0,0),(-1,-1),3),
+                            ("RIGHTPADDING",(0,0),(-1,-1),3)]))
     story.append(kp)
-    story.append(Spacer(1,8*mm))
-    section("Ikhtisar hasil campuran")
-    statrows=[[r["campuran"],str(int(r["jumlah"])),_number(r["rata_rata"]),_number(r["simpangan_baku"]),_number(r["cv_persen"])] for _,r in h.statistik.iterrows()]
-    story.append(_table(["Campuran","n","Rata-rata (MPa)","SD (MPa)","CV (%)"],statrows,[90,54,134,122,123],s))
-    story.append(Spacer(1,9*mm))
-    add(f"Campuran dengan rata-rata tertinggi: {h.statistik.loc[h.statistik['rata_rata'].idxmax(),'campuran']} "
-        f"({_number(h.statistik['rata_rata'].max())} MPa). {k['mencapai_target']} dari {k['silinder']} silinder "
-        f"mencapai target secara individual; pencapaian target individual bukan dasar tunggal penerimaan beton.")
-    add(f"Evaluasi simulasi: {k['campuran_memenuhi_simulasi']} campuran memenuhi, "
-        f"{k['campuran_tidak_memenuhi']} belum memenuhi, dan {k['campuran_belum_dapat_dinilai']} tidak dapat dievaluasi.")
-    add("PERINGATAN: Data contoh bersifat ilustratif; data unggahan tidak diverifikasi keaslian atau prosedur pengujiannya. Untuk penerimaan beton nyata diperlukan verifikasi standar, kalibrasi mesin, tata cara pengambilan sampel, umur uji, dan urutan pengujian.","K4Small")
-    story.append(Spacer(1,8*mm))
-    add("DATA & KETERLACAKAN", "K4H2")
-    add(f"Sumber: {h.sumber_data} | Dibuat: {datetime.now():%d-%m-%Y %H:%M} | SHA-256 CSV: {h.hash_sumber[:18]}...", "K4Small")
-    add(f"Penanggung jawab: {penanggung_jawab}", "K4Small")
-    add(f"Kode laporan: {_report_id(h, nama_proyek)}", "K4Small")
+    story.append(Spacer(1,7*mm))
+    section("01  Ringkasan eksekutif")
+    add(ex.deskripsi)
+    add(f"Pencapaian target individual: {_number(ex.persen_silinder_target,1)}% silinder. "
+        f"Hasil simulasi campuran: {ex.campuran_memenuhi} memenuhi, "
+        f"{ex.campuran_belum_memenuhi} belum memenuhi, "
+        f"{ex.campuran_tidak_dapat_dinilai} tidak dapat dievaluasi.")
+    section("02  Kinerja setiap campuran")
+    perform=tabel_kinerja(h)
+    rows=[[r['campuran'],str(int(r['jumlah_silinder'])),_number(r['rata_rata_MPa']),
+           _number(r['cv_persen']),_number(r['pencapaian_target_persen'],1)+"%",
+           str(r['status_simulasi'])] for _,r in perform.head(7).iterrows()]
+    story.append(_table(["Mix","n","Rerata (MPa)","CV (%)","Target silinder","Simulasi numerik"],
+                        rows,[43,31,92,61,100,196],s))
+    if len(perform)>7:
+        add(f"Tabel menampilkan 7 dari {len(perform)} campuran. Seluruh data terdapat pada CSV kinerja di paket ZIP.","K4Small")
+    story.append(Spacer(1,5*mm))
+    section("03  Catatan teknis")
+    add("Campuran dengan rata-rata silinder tertinggi adalah "
+        f"{ex.campuran_rata_tertinggi} ({_number(ex.rerata_tertinggi_mpa)} MPa). "
+        "Peringkat berdasarkan rerata saja tidak membuktikan kepatuhan mutu maupun kelayakan rancangan campuran.")
+    add("Perbedaan antara 'silinder mencapai target' dan 'hasil uji memenuhi simulasi' "
+        "harus dipertahankan; tidak boleh dipakai bergantian.", "K4Small")
+    if h.peringatan:
+        add("Catatan validasi: " + "; ".join(h.peringatan[:2]),"K4Small")
+    add(f"Sumber: {h.sumber_data} | Dibuat: {datetime.now():%d-%m-%Y %H:%M}","K4Small")
+    add(f"ID laporan: {_report_id(h,nama_proyek)} | Penanggung jawab: {penanggung_jawab}","K4Small")
     story.append(PageBreak())
 
-    # HALAMAN 2 - charts
-    section("Visualisasi pengujian")
-    add("Seluruh grafik mengikuti data dan target mutu dari eksekusi saat ini.","K4Small")
-    for filename, caption in [("histogram.png","Distribusi kuat tekan setiap silinder"),("perbandingan_rata_rata.png","Perbandingan rata-rata dan simpangan baku campuran")]:
+    # HALAMAN 2 — Grafik ringkas untuk pembaca nonteknis.
+    section("04  Analisis visual: distribusi dan rerata")
+    add("Garis acuan menunjukkan target pilihan pengguna, bukan batas otomatis penerimaan beton.","K4Small")
+    for filename, caption in [("histogram.png","Distribusi kuat tekan setiap silinder"),
+                              ("perbandingan_rata_rata.png","Rerata campuran dan variasi sampel (±SD)")]:
         add(caption,"K4H2")
-        story.append(Image(BytesIO(grafik[filename]),width=169*mm,height=71*mm))
-        story.append(Spacer(1,5*mm))
-    add("Garis target adalah parameter skenario, bukan batas yang otomatis membuktikan penerimaan beton.","K4Small")
+        story.append(Image(BytesIO(grafik[filename]),width=165*mm,height=69*mm))
+        story.append(Spacer(1,4*mm))
+    story.append(PageBreak())
+
+    # HALAMAN 3 — Grafik lanjutan.
+    section("05  Analisis visual: variasi &amp; tren")
+    add("Plot data per campuran dan tren hasil uji membantu eksplorasi, bukan pengesahan mutu.","K4Small")
+    for filename, caption in [("boxplot_campuran.png","Sebaran dan variasi hasil silinder"),
+                              ("tren_pengujian.png","Tren per urutan pengujian")]:
+        add(caption,"K4H2")
+        story.append(Image(BytesIO(grafik[filename]),width=165*mm,height=69*mm))
+        story.append(Spacer(1,4*mm))
     story.append(PageBreak())
 
     # HALAMAN 3 - evaluation
@@ -254,9 +279,10 @@ def buat_zip(h: HasilAnalisis, pdf_bytes: bytes, gambar: dict[str,bytes], nama_p
         "hasil/statistik_lanjutan_per_pengujian.csv":statistik_lanjutan(h, "hasil_uji"),
         "hasil/sensitivitas_target_mutu.csv":target_detail,
         "hasil/rekap_sensitivitas_target.csv":rekap_sensitivitas_target(target_detail),
+        "hasil/ringkasan_kinerja_profesional.csv":tabel_kinerja(h),
     }
     manifest={
-        "versi_aplikasi":"3.0",
+        "versi_aplikasi":"4.0",
         "audit_input":audit_counts(audit_csv(h.input_data)),
         "nama_proyek":nama_proyek,
         "dibuat_pada":datetime.now().isoformat(timespec="seconds"),
@@ -274,6 +300,9 @@ def buat_zip(h: HasilAnalisis, pdf_bytes: bytes, gambar: dict[str,bytes], nama_p
         for name,b in gambar.items():
             z.writestr("grafik/"+name,b)
         z.writestr("hasil/Laporan_Otomatis_K4_Beton.pdf",pdf_bytes)
+        summary=ringkasan_eksekutif(h)
+        notes="\n".join([summary.judul,summary.deskripsi,"",*interpretasi_per_campuran(h),"",*summary.catatan])
+        z.writestr("hasil/Ringkasan_Eksekutif.txt",notes.encode("utf-8"))
         z.writestr("ringkasan_metadata.json",json.dumps(manifest,ensure_ascii=False,indent=2))
         z.writestr("BACA_SAYA.txt","K4 ConcreteLab Pro - paket hasil analisis otomatis.\nInput dan angka mengikuti CSV terakhir saat analisis.\nHasil evaluasi mutu hanya simulasi pendidikan, bukan sertifikat laboratorium.\n")
     return output.getvalue()

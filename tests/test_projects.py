@@ -53,7 +53,7 @@ def test_roundtrip_archive(result, archive):
     assert item.metadata["files_sha256"]["data/input.csv"] == sha256(item.csv_bytes)
     assert len(pd.read_csv(BytesIO(item.csv_bytes))) == 18
     assert item.pdf_bytes and item.pdf_bytes.startswith(b"%PDF-")
-    assert len(PdfReader(BytesIO(item.pdf_bytes)).pages) == 5
+    assert len(PdfReader(BytesIO(item.pdf_bytes)).pages) == 6
 
 
 def test_recompute_after_data_edit(result):
@@ -70,7 +70,7 @@ def test_recompute_after_data_edit(result):
 def test_pdf_qr_and_id_are_present(result):
     blob = buat_pdf(result, nama_proyek="Lab K4")
     doc = PdfReader(BytesIO(blob))
-    assert len(doc.pages) == 5
+    assert len(doc.pages) == 6
     last = doc.pages[-1].extract_text()
     assert "Identitas & verifikasi arsip" in last
     assert report_id_for(result, "Lab K4") in last
@@ -82,7 +82,7 @@ def test_zip_export_v3(result):
     bundle = buat_zip(result, pdf, {})
     with ZipFile(BytesIO(bundle)) as z:
         metadata = json.loads(z.read("ringkasan_metadata.json"))
-        assert metadata["versi_aplikasi"] == "3.0"
+        assert metadata["versi_aplikasi"] == "4.0"
         assert "id_laporan" in metadata
 
 
