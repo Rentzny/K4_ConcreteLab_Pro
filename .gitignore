@@ -9,3 +9,11 @@ hasil/
 _local_data/
 *.sqlite3
 *.k4proj.zip
+# Supabase credentials, backup lokal dan identitas pengguna
+*.env
+.env
+.env.*
+.secrets/
+*.db
+*.sqlite
+backups/

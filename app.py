@@ -1,4 +1,4 @@
-"""Entrypoint ConcreteLab Pro v4.0 — navigasi minimalis tiga halaman."""
+"""ConcreteLab Pro v5.5 — analisis tamu + workspace berbasis Supabase RLS."""
 from pathlib import Path
 import streamlit as st
 
@@ -36,10 +36,39 @@ div[data-testid="stAlert"] {border-radius:9px;}
 </style>
 """, unsafe_allow_html=True)
 
-# Navigasi bawaan Streamlit: horizontal di desktop, responsif di layar kecil.
-# Hindari hamburger HTML palsu yang tidak bisa mengubah halaman.
+# QR publik: hanya metadata status yang disetujui, bukan data pribadi / dokumen asli.
+raw_token = st.query_params.get('verify')
+if raw_token:
+    from concretelab.cloud import get_supabase_settings, new_client, verify_report
+    st.title('Verifikasi Laporan')
+    st.caption('Pemeriksaan metadata laporan ConcreteLab Pro yang berstatus disetujui.')
+    try:
+        settings=get_supabase_settings(st.secrets)
+        if settings is None:
+            st.warning('Layanan verifikasi belum dikonfigurasi.')
+        else:
+            # Public query uses anon key with narrow SECURITY DEFINER SQL RPC.
+            info=verify_report(new_client(*settings),raw_token)
+            if info:
+                st.success('Metadata laporan ditemukan dan berstatus disetujui.')
+                st.write('**ID laporan:**',info['report_id'])
+                st.write('**Revisi:**',info['report_revision'])
+                st.write('**Kode proyek:**',info['project_code'] or '—')
+                st.write('**Waktu persetujuan:**',info['approved_at'])
+                st.code(info['csv_fingerprint'],language=None)
+                st.caption('Hash SHA-256 merujuk pada snapshot CSV; tidak membuktikan keaslian hasil laboratorium.')
+            else:
+                st.warning('Kode tidak ditemukan, belum disetujui, atau tidak berlaku.')
+    except Exception:
+        st.error('Layanan verifikasi belum tersedia. Periksa koneksi Supabase.')
+    st.info('Verifikasi ini bukan tanda tangan digital, sertifikat uji, atau persetujuan teknis resmi.')
+    st.stop()
+
+# Tiga menu utama tetap ada; Akun dan Proyek Saya menjadi fitur tambahan.
 home = st.Page("app_pages/home.py", title="Beranda", icon="🏠", url_path="", default=True)
 service = st.Page("app_pages/service.py", title="Service", icon="🧪", url_path="service")
 about = st.Page("app_pages/about.py", title="About", icon="ℹ️", url_path="about")
-nav = st.navigation([home, service, about], position="top")
+workspace = st.Page("app_pages/workspace.py", title="Proyek Saya", icon="📁", url_path="projects")
+account = st.Page("app_pages/account.py", title="Akun", icon="👤", url_path="account")
+nav = st.navigation([home, service, about, workspace, account], position="top")
 nav.run()

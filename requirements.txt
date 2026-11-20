@@ -4,3 +4,5 @@ numpy>=1.26,<3
 matplotlib>=3.8,<4
 plotly>=5.22,<7
 reportlab>=4.1,<5
+# Akun dan database cloud (client JWT per-sesi, tidak menggunakan service-role key)
+supabase>=2.13,<3

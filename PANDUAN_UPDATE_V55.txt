@@ -1,0 +1,23 @@
+CONCRETELAB PRO v5.5 — UPLOAD KODE & KONFIGURASI
+===============================================
+
+1. BACKUP project K4_ConcreteLab_Pro lama di GitHub Desktop.
+2. Download ZIP UPDATE v5.5 dan ekstrak ke folder sementara.
+3. Salin SEMUA isi ZIP ke folder repository lama (sejajar app.py), Replace bila diminta.
+4. JANGAN hapus .git, .venv, serta file data yang tidak termasuk pembaruan.
+5. Buat Supabase project; jalankan supabase/schema_v55.sql di SQL Editor.
+6. Isi Streamlit Cloud > Manage app > Settings > Secrets dengan nilai ASLI
+   sesuai supabase/secrets.example.toml (publishable/anon key, BUKAN service_role).
+7. GitHub Desktop: Commit 'Upgrade Cloud Workspace v5.5' lalu Push origin.
+8. Verifikasi website: Beranda dan Service tetap berjalan tanpa login.
+9. Daftar akun di menu Akun; konfirmasi email; login; buat Proyek Saya.
+10. Jalankan uji isolasi AKUN A vs AKUN B seperti dalam docs/PANDUAN_V55_ID.md.
+
+MODE TAMU: tetap aktif tanpa Supabase.
+EMAIL/PASSWORD LOGIN: sudah diimplementasikan melalui Supabase Auth, memerlukan konfigurasi.
+GOOGLE LOGIN: belum diimplementasikan; membutuhkan alur OAuth tersendiri.
+PDF CLOUD STORAGE: belum; laporan PDF tetap diunduh dari hasil analisis.
+QR ONLINE: metadata approved saja, bukan sertifikasi laboratorium.
+
+PENTING: Jangan mengunggah password, anon/secret key, data rahasia ataupun
+.streamlit/secrets.toml ke GitHub. Gunakan login dummy saat pertama menguji.

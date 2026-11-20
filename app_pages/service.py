@@ -35,7 +35,7 @@ TEMPLATE_FILE = BASE_DIR / "data" / "template_kosong.csv"
 PALETTE = ["#387C9E", "#138579", "#DE9952", "#8378B8", "#9B677A", "#65908F"]
 
 
-@st.cache_data(show_spinner=False, max_entries=10)
+# v5.5: jangan menyimpan CSV/hasil proyek pribadi dalam cache global lintas-sesi.
 def cache_berkas_laporan(csv_bytes: bytes, target: float, nama: str, penanggung: str, sumber: str):
     """Menghasilkan berkas dari CSV dan parameter; tidak memakai data hard-coded."""
     d = read_csv(csv_bytes)

@@ -111,3 +111,10 @@ python -m pytest -q tests
 ```
 
 Versi ini belum menyediakan **akun multiuser, otentikasi, database permanen pada cloud, tanda tangan digital, atau verifikasi QR melalui server publik**. Untuk sistem laboratorium produksi diperlukan backend aman, backup, audit, dan verifikasi standar pengujian.
+
+---
+## Upgrade v5.5: Akun & Proyek Cloud
+
+Tambahan v5.5: email/password lewat Supabase Auth, mode tamu, proyek privat, snapshot CSV, anggota proyek, laporan dengan alur review, audit log, verifikasi QR metadata. **SQL dan Secrets belum otomatis terpasang** — lihat [`docs/PANDUAN_V55_ID.md`](docs/PANDUAN_V55_ID.md). SQL ada di `supabase/schema_v55.sql`.
+
+Untuk mengaktifkan: buat proyek Supabase; jalankan SQL; isi Streamlit Cloud Secrets berdasarkan `supabase/secrets.example.toml`; lalu tes dengan dua akun dummy. Jangan menggunakan `service_role` ataupun mengunggah password ke GitHub. Login Google, penyimpanan PDF Cloud Storage dan tanda tangan digital belum termasuk dalam rilis ini. Jika Supabase tidak dikonfigurasi, **Beranda, Service, About** tetap dapat dipakai secara normal sebagai tamu.
