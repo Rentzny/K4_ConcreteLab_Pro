@@ -117,3 +117,20 @@ def test_plotly_ecdf_available(result):
     import plotly.express as px
     fig = px.ecdf(result.benda_uji, x="kuat_tekan_MPa", color="campuran", ecdfnorm="percent")
     assert len(fig.data) == 3
+
+
+def test_plotly_errorbar_visible_native_bool(result):
+    """Regresi bug Streamlit Cloud: plotly menolak numpy.bool sebagai visible."""
+    import plotly.graph_objects as go
+    lanjut = statistik_lanjutan(result)
+    fig = go.Figure()
+    for row in lanjut.itertuples(index=False):
+        value = float(row.mean_MPa)
+        lo, hi = float(row.ci95_rerata_bawah_MPa), float(row.ci95_rerata_atas_MPa)
+        has_ci = bool(np.isfinite(lo) and np.isfinite(hi))
+        fig.add_trace(go.Scatter(x=[str(row.campuran)], y=[value], mode="markers",
+            error_y=dict(type="data", symmetric=False,
+                         array=[max(0, hi-value)] if has_ci else [0],
+                         arrayminus=[max(0, value-lo)] if has_ci else [0],
+                         visible=has_ci)))
+    assert len(fig.data) == len(lanjut)

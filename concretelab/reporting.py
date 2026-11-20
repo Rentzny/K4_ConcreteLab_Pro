@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from hashlib import sha256
 from html import escape
 from io import BytesIO
 import json
@@ -13,6 +14,8 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak, KeepTogether
+from reportlab.graphics.shapes import Drawing
+from reportlab.graphics.barcode.qr import QrCodeWidget
 
 from .engine import HasilAnalisis
 from .plots import semua_grafik
@@ -84,6 +87,22 @@ def _kpi(value, label, width, s):
     return grid
 
 
+def _report_id(h: HasilAnalisis, nama_proyek: str) -> str:
+    canonical = sha256(h.input_data.to_csv(index=False).encode("utf-8")).hexdigest()
+    payload = f"{canonical}|{h.mutu_rencana:.6f}|{nama_proyek.strip()}".encode("utf-8")
+    return "K4-" + sha256(payload).hexdigest()[:12].upper()
+
+
+def _qr_drawing(payload: str, mm_size: float = 46) -> Drawing:
+    """Kode QR offline untuk fingerprint; tidak merupakan sertifikat digital."""
+    widget = QrCodeWidget(payload)
+    x1, y1, x2, y2 = widget.getBounds()
+    size = mm_size * mm
+    draw = Drawing(size, size, transform=[size/(x2-x1), 0, 0, size/(y2-y1), -x1*size/(x2-x1), -y1*size/(y2-y1)])
+    draw.add(widget)
+    return draw
+
+
 def _draw_page(canvas, doc):
     canvas.saveState()
     canvas.setFillColor(NAVY)
@@ -138,6 +157,7 @@ def buat_pdf(h: HasilAnalisis, nama_proyek="Proyek K4 - Evaluasi Kuat Tekan Beto
     add("DATA & KETERLACAKAN", "K4H2")
     add(f"Sumber: {h.sumber_data} | Dibuat: {datetime.now():%d-%m-%Y %H:%M} | SHA-256 CSV: {h.hash_sumber[:18]}...", "K4Small")
     add(f"Penanggung jawab: {penanggung_jawab}", "K4Small")
+    add(f"Kode laporan: {_report_id(h, nama_proyek)}", "K4Small")
     story.append(PageBreak())
 
     # HALAMAN 2 - charts
@@ -194,6 +214,22 @@ def buat_pdf(h: HasilAnalisis, nama_proyek="Proyek K4 - Evaluasi Kuat Tekan Beto
     story.append(Spacer(1,8*mm))
     add("VERIFIKASI KOMPUTASI", "K4H2")
     add("Hasil kuat tekan diuji ulang secara numerik terhadap rumus P/A untuk seluruh baris, dan jumlah silinder pada rekap diperiksa sama dengan data input. Pemeriksaan ini bukan validasi alat uji atau mutu beton lapangan.","K4Small")
+    story.append(PageBreak())
+    section("Identitas & verifikasi arsip")
+    report_id = _report_id(h, nama_proyek)
+    add("Kode identifikasi berikut dibuat dari isi CSV, target mutu, dan nama proyek. "
+        "Scan QR untuk membaca ID dan SHA-256; pemilik data dapat mencocokkan arsip proyek di aplikasi.")
+    story.append(Spacer(1, 8*mm))
+    canonical_hash = sha256(h.input_data.to_csv(index=False).encode("utf-8")).hexdigest()
+    qr_payload = f"K4-CONCRETELAB|REPORT={report_id}|CSV-SHA256={canonical_hash}|TARGET={h.mutu_rencana:g}MPa"
+    story.append(_qr_drawing(qr_payload))
+    story.append(Spacer(1, 7*mm))
+    add(f"ID laporan: {report_id}", "K4H2")
+    add(f"SHA-256 CSV ternormalisasi (hex): {canonical_hash}", "K4Small")
+    add(f"Target simulasi: {_number(h.mutu_rencana)} MPa", "K4Small")
+    add("PENTING: QR dan checksum hanya membantu mendeteksi perubahan data setelah arsip dibuat. "
+        "Kode ini BUKAN tanda tangan digital, bukan verifikasi identitas laboratorium, "
+        "dan bukan keputusan penerimaan beton.", "K4Small")
     doc.build(story, onFirstPage=_draw_page, onLaterPages=_draw_page)
     return out.getvalue()
 
@@ -220,13 +256,14 @@ def buat_zip(h: HasilAnalisis, pdf_bytes: bytes, gambar: dict[str,bytes], nama_p
         "hasil/rekap_sensitivitas_target.csv":rekap_sensitivitas_target(target_detail),
     }
     manifest={
-        "versi_aplikasi":"2.2",
+        "versi_aplikasi":"3.0",
         "audit_input":audit_counts(audit_csv(h.input_data)),
         "nama_proyek":nama_proyek,
         "dibuat_pada":datetime.now().isoformat(timespec="seconds"),
         "mutu_rencana_MPa":h.mutu_rencana,
         "sumber_data":h.sumber_data,
         "sha256_input":h.hash_sumber,
+        "id_laporan":_report_id(h,nama_proyek),
         "ringkasan":h.ringkasan,
         "peringatan":h.peringatan,
         "keterangan":"SIMULASI DATA K4, bukan sertifikat penerimaan beton laboratorium.",

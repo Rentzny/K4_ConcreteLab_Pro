@@ -1,0 +1,16 @@
+UPDATE K4 CONCRETELAB PRO v3.0
+=============================
+1. DOWNLOAD paket v3.0 UPDATE_GITHUB.zip.
+2. EKSTRAK zip tersebut.
+3. Salin semua isinya ke folder lama K4_ConcreteLab_Pro (sejajar app.py).
+4. Pilih REPLACE untuk file yang sama. Jangan hapus .git atau .venv.
+5. Buka GitHub Desktop > Changes; periksa file proyek, jangan upload secrets.
+6. Isi Summary: Upgrade ConcreteLab Pro v3.0 - Archive & QR.
+7. Commit to main, kemudian Push origin.
+8. Periksa deployment Streamlit di browser.
+9. Service > Upload CSV > Proyek & Riwayat > Buat arsip proyek.
+10. Download file .k4proj.zip, lalu coba pulihkan lewat expander Buka Arsip.
+
+RIWAYAT: Streamlit Cloud tidak menyediakan penyimpanan SQLite permanen dalam versi ini.
+Simpan berkas .k4proj.zip di komputer/Drive pribadi, bukan data permanen dalam server.
+QR PDF untuk ID/checksum saja, BUKAN sertifikat laboratorium atau tanda tangan digital.

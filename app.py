@@ -1,4 +1,4 @@
-"""Entrypoint ConcreteLab Pro v2.1 — navigasi sederhana dan responsif."""
+"""Entrypoint ConcreteLab Pro v3.0 — navigasi minimalis tiga halaman."""
 from pathlib import Path
 import streamlit as st
 

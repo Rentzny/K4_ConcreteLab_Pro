@@ -1,64 +1,62 @@
-# K4 ConcreteLab Pro v2.2 — Minimal Engineering + Analitik Lanjutan
+# K4 ConcreteLab Pro v3.0 — Project Archive & Traceability
 
-Aplikasi Streamlit pengolahan hasil uji kuat tekan beton. Fitur analisis v2.0 dipertahankan, dengan navigasi **Beranda | Service | About**, homepage minimalis tanpa animasi, serta statistik lanjutan, grafik interaktif dan simulasi target mutu.
+Aplikasi analisis kuat tekan beton berbasis **Streamlit**. Website mempunyai menu **Beranda | Service | About**, tampilan minimalis, serta area unggah CSV besar di tengah halaman Service. Sebelum CSV valid diunggah, **tidak ada grafik, tabel analisis, atau PDF** yang ditampilkan.
 
-## Cara menjalankan
+## Fitur yang dipertahankan dari v2.2
 
-1. Jalankan `run_windows_PERBAIKAN.bat` (Windows) atau aktifkan Python lalu jalankan `streamlit run app.py`.
-2. Kunjungi menu **Service** dan unggah CSV (contoh tersedia di halaman tersebut).
-3. Baca audit input, edit data bila perlu, lihat statistik dan grafik, lalu unduh PDF/ZIP.
-4. Menu **Beranda** tidak menampilkan hasil analisis, dan tidak ada CSV yang dimuat secara otomatis.
+- Validasi CSV dengan rincian baris, editor data, deteksi duplikasi/angka tidak sah.
+- Analisis kuat tekan silinder, pengelompokan dua silinder per pengujian, statistik dan evaluasi simulasi SNI dengan pemeriksaan asumsi.
+- Statistik lanjutan (Q1/Q3, persentil, IQR, CV, bootstrap ilustratif), grafik interaktif, sensitivitas target dan skenario beban.
+- Bandingkan dua dataset CSV, unduh PDF, CSV, grafik dan ZIP hasil.
 
-## Navigasi dan mobile
+## Fitur baru v3.0
 
-- Desktop: navigasi horizontal dari `st.navigation(position="top")`.
-- Mobile: navigasi bawaan Streamlit beradaptasi pada layar kecil; perilaku persis menu perlu diuji di browser/HP setelah deploy.
-- Data upload dan hasil edit disalin ke session state untuk bertahan saat berpindah halaman **dalam sesi yang sama**, bukan database permanen.
-- Homepage sederhana: latar terang, warna netral, tiga kartu fitur, tanpa animasi atau video latar.
+1. **Service → Proyek & Riwayat → Buat arsip proyek** menghasilkan berkas `K4_...k4proj.zip` berisi CSV tervalidasi, metadata nama proyek, penanggung jawab, target, waktu, ID versi, checksum SHA-256, dan salinan PDF.
+2. **Service → Buka arsip proyek sebelumnya** memulihkan CSV beserta parameter proyek ke sesi browser. Pemeriksaan otomatis menolak ZIP rusak, struktur mencurigakan, hash tidak cocok, data tidak sah, atau ringkasan perhitungan yang tidak sesuai. ZIP tidak diekstrak ke server.
+3. **PDF v3.0** mendapatkan satu halaman identitas laporan: ID deterministik berbasis CSV ternormalisasi/target/nama proyek, QR offline berisi ID dan SHA-256 untuk membantu pengecekan. PDF contoh 18 silinder menjadi 5 halaman (sebelumnya 4).
+4. **Riwayat SQLite lokal** (opsional, nonaktif secara default): menyimpan beberapa arsip analisis dan memulihkan kembali di instalasi pribadi. Database berada pada folder `_local_data/` yang masuk `.gitignore`.
 
-## Kebutuhan
+**QR/SHA-256 bukan tanda tangan digital dan tidak membuktikan keaslian sertifikat atau identitas laboratorium.** Pemeriksaan hash hanya mendeteksi perubahan dibandingkan metadata dalam arsip; pihak ketiga tetap bisa membuat ulang arsip beserta checksum. Data ilustratif tidak membuktikan mutu konstruksi nyata.
 
-`requirements.txt` memerlukan Streamlit versi **1.46+** untuk navigasi atas, ditambah pandas, NumPy, Matplotlib, Plotly dan ReportLab.
+## Jalankan di Windows
 
-## File penting
+1. Simpan folder aplikasi di komputer dan buka menggunakan VS Code.
+2. Jalankan `run_windows_PERBAIKAN.bat` untuk membuat lingkungan Python (via uv bila tersedia) dan menjalankan Streamlit.
+3. Browser membuka `http://localhost:8501`.
+4. Pilih **Service**, unggah CSV dan coba tab **Proyek & Riwayat**.
+5. Unduh berkas `.k4proj.zip` setiap kali ingin menyimpan satu versi kerja. Arsip tersebut dapat diimpor lagi dari halaman Service.
 
-- `app.py` — router, konfigurasi, gaya global
-- `app_pages/home.py` — Beranda
-- `app_pages/service.py` — aplikasi analisis dan ekspor v2.0
-- `app_pages/about.py` — informasi proyek
-- `concretelab/` — mesin perhitungan, quality, skenario, grafik, PDF
-- `tests/` — tes otomatis yang bisa dijalankan dengan `pytest -q`
-- `data/` — CSV contoh dan template
+Alternatif terminal (setelah venv dan requirements terpasang):
 
-## Deployment GitHub → Streamlit Cloud
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run app.py
+```
 
-Timpa file lama dengan paket update v2.1 **di root repository** (jangan membuat folder baru bersarang). Lakukan `Commit to main` dan `Push origin` dari GitHub Desktop. Streamlit menggunakan `app.py` sebagai entrypoint. Periksa navigasi desktop dan HP setelah deploy.
+## Mengaktifkan riwayat SQLite (HANYA pada komputer pribadi)
 
-## Batasan ilmiah
+Mode ini **tidak memiliki login, otorisasi, ataupun isolasi data antar pengguna**. Jangan mengaktifkannya untuk aplikasi Streamlit Cloud publik atau komputer bersama.
 
-Data contoh bersifat ilustratif. Evaluasi mutu adalah simulasi numerik terbatas, **bukan sertifikat pengujian atau keputusan penerimaan beton nyata**. Tidak ada penyimpanan permanen untuk CSV yang diunggah dan jangan mengunggah data rahasia ke layanan publik tanpa perlindungan yang sesuai.
+```powershell
+$env:K4_ENABLE_LOCAL_HISTORY = "1"
+.\.venv\Scripts\python.exe -m streamlit run app.py
+```
 
+Arsip tersimpan di `_local_data/history.sqlite3`. Jangan mengunggah folder ini ke GitHub atau membagikannya; pastikan memiliki backup. Riwayat dari browser di Streamlit Community Cloud tetap tidak permanen; pengguna harus **mengunduh ZIP proyek**.
 
-## Upgrade v2.2: statistik lanjutan, grafik & simulasi target
+## Deploy ulang dari repository GitHub
 
-- **Service → Data & statistik:** P10, Q1, median, Q3, P90, IQR, SD, CV,
-  serta interval bootstrap 95% rerata (hanya jika n ≥ 5). Pilih unit per
-  silinder atau per hasil uji. Grafik rerata + rentang bootstrap interaktif.
-- **Service → Evaluasi mutu:** rentang target f'c dapat digeser, kurva
-  persentase silinder mencapai target per campuran dan jumlah campuran
-  memenuhi **simulasi** tiga hasil uji ditampilkan terpisah. Angka “tidak
-  dapat dievaluasi” tidak dianggap “gagal”.
-- **Service → Visualisasi:** distribusi kumulatif interaktif (ECDF) dengan
-  filter campuran dan garis target mutu.
-- **Unduh laporan:** paket ZIP menyertakan CSV statistik lanjutan dan
-  sensitivitas target. PDF tetap berdasarkan target utama dari sidebar.
-- **Kebutuhan:** Tidak ada library tambahan; menggunakan NumPy, pandas,
-  dan Plotly yang sudah tercantum di `requirements.txt`.
+- Unduh `K4_ConcreteLab_Pro_v3_0_UPDATE_GITHUB.zip`.
+- Ekstrak, lalu **salin isinya** ke root repository `K4_ConcreteLab_Pro` di laptop (satu level dengan `app.py`). Pilih Replace bila diminta. Jangan menimpa atau menghapus folder `.git` maupun `.venv`.
+- Di GitHub Desktop, periksa Changes, isi summary, klik `Commit to main`, lalu `Push origin`.
+- Di Streamlit Community Cloud, periksa status deployment dan pastikan halaman Service berfungsi. `requirements.txt` tetap sama; tidak perlu pustaka baru.
+- **Jangan unggah** token/API key, data laboratorium rahasia, SQLite, atau `.env` ke repository publik.
 
-Uji mesin perhitungan dengan `python -m pytest -q tests`.
-Tampilan UI Streamlit perlu diperiksa langsung setelah deploy.
+## Verifikasi dan batasan
 
-**Batasan:** Angka CI bootstrap menggambarkan variasi rerata dalam
-pengambilan ulang sampel secara statistik. Pada data kecil atau tidak
-representatif, interpretasinya terbatas dan tidak memenuhi persyaratan
-penerimaan mutu beton lapangan. Evaluasi mutu tetap simulasi pembelajaran.
+Tes unit/mesin analisis:
+
+```powershell
+python -m pytest -q tests
+```
+
+Versi ini belum menyediakan **akun multiuser, otentikasi, database permanen pada cloud, tanda tangan digital, atau verifikasi QR melalui server publik**. Untuk sistem laboratorium produksi diperlukan backend aman, backup, audit, dan verifikasi standar pengujian.

@@ -24,7 +24,7 @@ st.write("")
 features = [
     ("01", "Validasi CSV", "Periksa kelengkapan kolom dan indikasi data bermasalah sebelum analisis."),
     ("02", "Analisis statistik", "Hitung kuat tekan, ringkasan campuran, evaluasi simulasi, dan grafik."),
-    ("03", "Laporan otomatis", "Unduh tabel hasil, grafik, PDF dan paket ZIP dari data yang diunggah."),
+    ("03", "Laporan & arsip", "Unduh PDF, ZIP hasil serta arsip proyek yang dapat dibuka kembali."),
 ]
 cols = st.columns(3, gap="medium")
 for col, (no, title, description) in zip(cols, features):

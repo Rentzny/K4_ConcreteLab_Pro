@@ -1,5 +1,16 @@
 # Changelog
 
+## v3.0 — Portable Project Archive & Report Traceability
+- Arsip `.k4proj.zip` berisi CSV, metadata, checksum, dan PDF; dapat diimpor untuk mengembalikan analisis.
+- SHA-256 file diverifikasi, data dihitung ulang, ZIP tak valid ditolak sebelum diproses.
+- QR offline + ID laporan pada PDF, tanpa klaim tanda tangan digital atau validasi laboratorium.
+- Penyimpanan riwayat SQLite lokal opt-in; nonaktif secara default untuk hosting publik.
+- Service mendapat tab **Proyek & Riwayat**; Beranda dan About tetap minimalis.
+- Semua fitur v2.2 tetap dipertahankan.
+- Memperbaiki error Plotly ketika `visible` menerima `numpy.bool` pada grafik interval bootstrap.
+
+# Changelog
+
 ## v2.1 — Minimal Engineering
 - Menu **Produk** diganti menjadi **Service**.
 - Navigasi tiga halaman Beranda / Service / About menggunakan Streamlit `st.Page` + `st.navigation(position="top")`.

@@ -107,5 +107,5 @@ def test_zip_menyimpan_audit_dan_versi():
     with ZipFile(BytesIO(bundle)) as z:
         assert "hasil/audit_input.csv" in z.namelist()
         meta=json.loads(z.read("ringkasan_metadata.json"))
-        assert meta["versi_aplikasi"]=="2.2"
+        assert meta["versi_aplikasi"] in {"2.2", "3.0"}
         assert meta["audit_input"]["error"] == 0

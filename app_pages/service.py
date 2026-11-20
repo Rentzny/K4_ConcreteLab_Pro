@@ -1,7 +1,8 @@
-"""K4 ConcreteLab Pro - antarmuka Streamlit, jalan lokal atau Streamlit Community Cloud."""
+"""K4 ConcreteLab Pro v3.0 - Service, analisis CSV, dan arsip proyek portabel."""
 from __future__ import annotations
 
 from io import BytesIO
+import os
 from pathlib import Path
 import hashlib
 import math
@@ -17,6 +18,8 @@ from concretelab.quality import audit_csv, audit_counts
 from concretelab.scenarios import simulasi_beban, tabel_skenario, bandingkan_dua_analisis
 from concretelab.advanced import statistik_lanjutan, sensitivitas_target, rekap_sensitivitas_target
 from concretelab.reporting import buat_pdf, buat_zip
+from concretelab.projects import (buat_arsip_proyek, baca_arsip_proyek,
+                                   LocalHistoryStore, ProjectArchiveError, report_id_for, sha256)
 
 # Lokasi file ini app_pages/service.py; data/ berada satu tingkat di atas app_pages.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,7 +40,7 @@ def cache_berkas_laporan(csv_bytes: bytes, target: float, nama: str, penanggung:
 
 # Halaman Service - fitur inti K4 ConcreteLab Pro v2 tetap dipertahankan.
 st.title("Service")
-st.caption("Analisis kuat tekan beton dari CSV • Validasi data • Grafik • Laporan PDF")
+st.caption("Analisis kuat tekan beton dari CSV • Grafik interaktif • Laporan PDF • Arsip proyek")
 st.caption("Sesudah mengunggah CSV, pengaturan target mutu dapat dibuka melalui sidebar di sisi kiri.")
 st.divider()
 
@@ -45,6 +48,8 @@ st.divider()
 def simpan_csv_ke_sesi():
     """Simpan salinan bytes CSV di session_state supaya bertahan saat pindah halaman."""
     f = st.session_state.get("k4_csv_upload")
+    for k in ("k4_imported_project", "k4_restored_target", "k4_restored_name", "k4_restored_owner"):
+        st.session_state.pop(k, None)
     if f is None:
         for key in ("k4_uploaded_bytes", "k4_uploaded_name", "k4_saved_edit_csv", "k4_active_fingerprint"):
             st.session_state.pop(key, None)
@@ -57,8 +62,31 @@ def simpan_csv_ke_sesi():
 
 def hapus_csv_sesi():
     """Reset data aktif; tidak menghapus file di komputer pengguna."""
-    for key in ("k4_csv_upload", "k4_uploaded_bytes", "k4_uploaded_name", "k4_saved_edit_csv", "k4_active_fingerprint"):
+    for key in ("k4_csv_upload", "k4_uploaded_bytes", "k4_uploaded_name", "k4_saved_edit_csv", "k4_active_fingerprint", "k4_imported_project", "k4_archive_export", "k4_archive_export_key", "k4_restored_target", "k4_restored_name", "k4_restored_owner", "k4_archive_upload"):
         st.session_state.pop(key, None)
+
+
+def pulihkan_dari_arsip(data: bytes):
+    """Periksa arsip sebelum memulihkan data dan nama proyek ke sesi."""
+    item = baca_arsip_proyek(data)
+    st.session_state["k4_uploaded_bytes"] = item.csv_bytes
+    st.session_state["k4_uploaded_name"] = f"arsip_{item.metadata['id_arsip'][:8]}.csv"
+    st.session_state["k4_imported_project"] = item.metadata
+    st.session_state["k4_restored_target"] = float(item.metadata["target_MPa"])
+    st.session_state["k4_restored_name"] = item.metadata["nama_proyek"]
+    st.session_state["k4_restored_owner"] = item.metadata["penanggung_jawab"]
+    st.session_state.pop("k4_saved_edit_csv", None)
+    st.session_state.pop("k4_active_fingerprint", None)
+
+
+def saat_arsip_diunggah():
+    f = st.session_state.get("k4_archive_upload")
+    if f is not None:
+        try:
+            pulihkan_dari_arsip(f.getvalue())
+            st.session_state.pop("k4_import_error", None)
+        except ProjectArchiveError as exc:
+            st.session_state["k4_import_error"] = str(exc)
 
 # Tempat upload dibuat sebagai dropzone asli Streamlit di area utama.
 # Pada HP area ini otomatis mengikuti lebar layar; tidak memakai animasi atau HTML upload palsu.
@@ -89,6 +117,17 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
+with st.expander("📁 Buka arsip proyek K4 sebelumnya (.zip)", expanded=False):
+    st.caption("Pilih arsip yang pernah diunduh dari tab Proyek & Riwayat. "
+               "Aplikasi memverifikasi checksum setiap file sebelum memulihkan CSV.")
+    st.file_uploader("Unggah arsip proyek K4", type=["zip"],
+                     key="k4_archive_upload", on_change=saat_arsip_diunggah)
+    if st.session_state.get("k4_import_error"):
+        st.error(st.session_state["k4_import_error"])
+    if st.session_state.get("k4_imported_project"):
+        info = st.session_state["k4_imported_project"]
+        st.success(f"Arsip terverifikasi: {info['nama_proyek']} · {info['id_laporan']}")
 
 with st.container(border=True):
     st.markdown("### Unggah CSV untuk mulai analisis")
@@ -150,17 +189,17 @@ with st.sidebar:
     if st.session_state.get("k4_uploaded_bytes") is not None:
         st.divider()
         st.markdown("### ⚙️ Pengaturan Analisis")
-        st.caption("Data diproses dalam sesi. Aplikasi tidak menyimpannya otomatis ke database.")
+        st.caption("Data diproses dalam sesi. Simpan arsip proyek melalui tab Proyek & Riwayat jika ingin menyimpan versi.")
         target = st.number_input(
             "Mutu rencana f'c (MPa)", min_value=1.0, max_value=150.0,
-            value=30.0, step=0.5,
+            value=float(st.session_state.get("k4_restored_target", 30.0)), step=0.5,
             help="Parameter evaluasi, bukan kolom CSV.",
         )
         nama_proyek = st.text_input(
-            "Nama proyek", value="PjBL K4 - Evaluasi Kuat Tekan Beton", max_chars=110,
+            "Nama proyek", value=st.session_state.get("k4_restored_name", "PjBL K4 - Evaluasi Kuat Tekan Beton"), max_chars=110,
         )
         penanggung = st.text_input(
-            "Kelompok / penanggung jawab", value="Kelompok PjBL K4", max_chars=85,
+            "Kelompok / penanggung jawab", value=st.session_state.get("k4_restored_owner", "Kelompok PjBL K4"), max_chars=85,
         )
         label_sumber = st.selectbox(
             "Jenis sumber data",
@@ -269,7 +308,7 @@ metrics[3].metric("Silinder ≥ target",f"{summary['mencapai_target']} / {summar
 metrics[4].metric("Indikasi outlier",summary["indikasi_outlier"])
 
 tabs = st.tabs(["📊 Ringkasan", "📋 Data & statistik", "🧪 Evaluasi mutu", "📈 Visualisasi",
-                "📥 Unduh laporan", "ℹ️ Metode", "🧮 Skenario beban", "🔍 Bandingkan CSV", "✅ Audit input"])
+                "📥 Unduh laporan", "ℹ️ Metode", "🧮 Skenario beban", "🔍 Bandingkan CSV", "✅ Audit input", "📁 Proyek & Riwayat"])
 
 with tabs[0]:
     st.markdown("### Hasil utama pengujian")
@@ -662,3 +701,81 @@ with tabs[8]:
 
 st.divider()
 st.caption("K4 ConcreteLab Pro v2.2 • PjBL Teknik Sipil • Simulasi, bukan sertifikat hasil uji laboratorium • Engine Python teruji")
+
+
+with tabs[9]:
+    st.markdown("### Proyek & Riwayat · ConcreteLab Pro v3.0")
+    st.caption("Simpan satu versi analisis sebagai arsip portabel, lalu buka kembali kapan saja. "
+               "Berkas arsip membawa CSV, metadata, checksum dan salinan PDF.")
+    st.warning("Penyimpanan Cloud **tidak otomatis permanen**. Unduh arsip proyek ke perangkat. "
+               "Kode QR dan SHA-256 mendeteksi perubahan arsip, tetapi bukan tanda tangan digital atau sertifikat laboratorium.")
+
+    report_id = report_id_for(h, nama_proyek)
+    a1, a2, a3 = st.columns(3)
+    a1.metric("ID laporan", report_id)
+    a2.metric("Target mutu", f"{target:g} MPa")
+    a3.metric("Baris data", str(len(h.input_data)))
+    catatan = st.text_area("Catatan versi / perubahan", value="Analisis data dari CSV terverifikasi", max_chars=1000,
+                           help="Contoh: revisi beban U01, penambahan kelompok pengujian, atau pengecekan ulang.")
+    current_data = h.input_data.to_csv(index=False).encode("utf-8")
+    snapshot_key = sha256((sha256(current_data) + f"|{target}|{nama_proyek}|{penanggung}|{catatan}").encode("utf-8"))
+    if st.button("Buat arsip proyek terverifikasi", type="primary", key="buat_arsip_proyek"):
+        try:
+            with st.spinner("Menyiapkan PDF dan arsip proyek..."):
+                _, pdf_proyek, _ = cache_berkas_laporan(current_data, float(target), nama_proyek, penanggung, h.sumber_data)
+                st.session_state["k4_archive_export"] = buat_arsip_proyek(
+                    h, nama_proyek=nama_proyek, penanggung_jawab=penanggung,
+                    catatan=catatan, pdf_bytes=pdf_proyek,
+                )
+                st.session_state["k4_archive_export_key"] = snapshot_key
+            st.success("Arsip proyek berhasil dibuat dan checksum sudah dicatat.")
+        except (ProjectArchiveError, ValueError) as exc:
+            st.error(f"Arsip gagal dibuat: {exc}")
+    latest_archive = st.session_state.get("k4_archive_export")
+    if latest_archive is not None and st.session_state.get("k4_archive_export_key") == snapshot_key:
+        try:
+            restored = baca_arsip_proyek(latest_archive)
+            st.download_button("⬇️ Download arsip proyek (.k4proj.zip)", data=latest_archive,
+                               file_name=f"K4_{report_id}.k4proj.zip", mime="application/zip",
+                               use_container_width=True, key="k4_download_archived_project")
+            with st.expander("Lihat metadata dan fingerprint arsip"):
+                st.json(restored.metadata)
+                st.code(sha256(latest_archive), language=None)
+        except ProjectArchiveError as exc:
+            st.error(f"Integritas arsip tidak valid: {exc}")
+    else:
+        st.info("Tekan **Buat arsip proyek terverifikasi** setelah selesai mengedit CSV dan target.")
+
+    st.divider()
+    st.markdown("#### Riwayat lokal (opsional)")
+    if os.environ.get("K4_ENABLE_LOCAL_HISTORY") == "1":
+        st.warning("Mode riwayat lokal aktif. Gunakan hanya di komputer/server pribadi dan tepercaya "
+                   "karena belum tersedia login, izin per pengguna, atau pemisahan data antarpengguna.")
+        dbpath = BASE_DIR / "_local_data" / "history.sqlite3"
+        try:
+            store = LocalHistoryStore(dbpath)
+            if latest_archive is not None and st.session_state.get("k4_archive_export_key") == snapshot_key:
+                if st.button("Simpan versi ini ke SQLite lokal", key="k4_save_sqlite"):
+                    store.save(latest_archive)
+                    st.success("Versi tersimpan pada SQLite lokal.")
+            recents = store.list()
+            if recents:
+                recent_by_id = {i["id_arsip"]:i for i in recents}
+                selected = st.selectbox("Riwayat tersimpan", options=list(recent_by_id),
+                                        format_func=lambda x: f"{recent_by_id[x]['nama_proyek']} | {recent_by_id[x]['dibuat_utc']} | {x[:8]}")
+                old_bytes = store.load(selected)
+                st.download_button("Download arsip dari SQLite", old_bytes,
+                                   file_name=f"riwayat_{selected}.k4proj.zip", mime="application/zip")
+                if st.button("Pulihkan versi terpilih ke sesi", key="k4_restore_local"):
+                    pulihkan_dari_arsip(old_bytes)
+                    st.rerun()
+            else:
+                st.caption("Belum ada riwayat lokal tersimpan.")
+        except (ProjectArchiveError, OSError, ValueError) as exc:
+            st.error(f"Riwayat lokal tidak dapat digunakan: {exc}")
+    else:
+        st.info("Riwayat SQLite sengaja **nonaktif** pada deployment publik. "
+                "Untuk instalasi **lokal pribadi**, aktifkan variabel lingkungan "
+                "`K4_ENABLE_LOCAL_HISTORY=1`. Arsip portabel tetap bisa disimpan dan dibuka tanpa database.")
+    st.caption("Untuk penggunaan laboratorium multiuser yang sebenarnya, diperlukan backend database terkelola, "
+               "autentikasi, pembatasan akses, backup, dan audit keamanan sebelum menyimpan data proyek permanen.")
