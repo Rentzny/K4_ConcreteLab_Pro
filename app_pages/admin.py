@@ -1,4 +1,4 @@
-"""ConcreteLab Pro v7 — authenticated administrator operations dashboard.
+"""ConcreteLab Pro v8 — authenticated administrator operations dashboard.
 
 All writes go through Supabase RPC functions that enforce active admin access
 in PostgreSQL, not just UI checks. Anon/public users cannot view this page.
@@ -19,7 +19,7 @@ from concretelab.cloud_ui import cloud_client
 from concretelab.cloud import get_supabase_settings, invite_account_by_email
 
 st.title('Pusat Kontrol Administrator')
-st.caption('ConcreteLab Pro v7.0 · Dashboard operasional, pengguna, izin tamu, dan audit')
+st.caption('ConcreteLab Pro v8.0 · Dashboard operasional, pengguna, izin tamu, dan audit')
 st.divider()
 
 policy, user, profile = current_policy()
@@ -69,11 +69,11 @@ st.success(f"Administrator aktif · Mode tamu: **{guest_mode_label(policy.guest)
 cols = st.columns(5)
 for col, title, value, help_text in zip(
     cols,
-    ('Total akun', 'Menunggu persetujuan', 'Total proyek', 'Laporan', 'Fitur tamu ON'),
+    ('Total akun', 'Akun pending lama', 'Total proyek', 'Laporan', 'Fitur tamu ON'),
     (metrics['accounts'], metrics['pending_accounts'],
      metrics['projects'] if projects_ok else '—', metrics['reports'] if reports_ok else '—',
      f"{metrics['guest_enabled']}/{metrics['guest_total']}"),
-    ('Maksimal 500 akun terbaru', 'Status pending', 'Maksimal 500 proyek terbaru',
+    ('Maksimal 500 akun terbaru', 'Status pending dari versi lama', 'Maksimal 500 proyek terbaru',
      'Maksimal 500 laporan terbaru', 'Hanya fitur analisis publik'),
 ):
     col.metric(title, value, help=help_text)
@@ -172,8 +172,9 @@ with guest_tab:
                'Setelah menyimpan, halaman dimuat ulang.')
 
 with members_tab:
-    st.subheader('Pendaftaran & Persetujuan Akun')
-    st.caption('Pengguna baru dapat mendaftar dari menu Akun. Status awal pending; Admin dapat mengaktifkan '
+    st.subheader('Pendaftaran & Manajemen Akun')
+    st.caption('Setelah migrasi schema_v80.sql, akun baru otomatis aktif tanpa persetujuan Admin. '
+               'Verifikasi email Supabase tetap berlaku. Admin dapat mengaktifkan akun lama yang masih pending '
                'atau menangguhkan akses cloud. Mengubah peran tidak memerlukan penyalinan UUID manual.')
     with st.form('k4_v7_register_switch'):
         registration = st.toggle('Tampilkan formulir Daftar Akun', value=policy.registration_enabled)
@@ -185,12 +186,12 @@ with members_tab:
         except Exception:
             st.error('Gagal menyimpan pilihan pendaftaran.')
     st.warning('Sakelar ini hanya mengubah tampilan pendaftaran pada website. '
-               'Untuk benar-benar menonaktifkan signup publik, ubah juga pengaturan Supabase Auth. '
-               'Akun baru tetap pending hingga disetujui.')
+               'Untuk benar-benar memblokir signup publik melalui API, nonaktifkan juga pendaftaran di Supabase Auth. '
+               'Akun baru otomatis aktif setelah migrasi v8.0, tetapi perannya tetap user, bukan admin.')
 
     pending = [p for p in people if p.get('account_status') == 'pending']
     if pending:
-        st.info(f'{len(pending)} akun menunggu persetujuan.')
+        st.info(f'{len(pending)} akun lama masih pending dan dapat diaktifkan secara manual.')
     else:
         st.success('Tidak ada akun pending pada daftar yang dimuat.')
     st.dataframe([

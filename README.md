@@ -1,3 +1,15 @@
+# K4 ConcreteLab Pro v8.0 — Login, Registrasi Mandiri & Tamu Responsif
+
+**Pembaruan dari v7.0.** Halaman awal baru untuk **HP dan desktop** dengan tiga pilihan: **Masuk**, **Daftar Akun**, dan **Lanjutkan sebagai Tamu**. Form pendaftaran memeriksa **Konfirmasi Password**. Akun yang dibuat setelah migrasi SQL v8.0 berstatus **active** dengan peran biasa `user`, sehingga **tidak menunggu persetujuan Admin**. Jika Supabase mengaktifkan konfirmasi email, pengguna harus memverifikasi email sebelum login—ini bukan persetujuan Administrator.
+
+**WAJIB:** Backup Supabase → jalankan `supabase/schema_v80.sql` di SQL Editor → baru tempel paket UPDATE v8.0 di repository GitHub → Commit dan Push. Jangan menjalankan ulang schema v5.5/v6.0.
+
+**Panduan lengkap:** [`docs/PANDUAN_UPGRADE_V80_ID.md`](docs/PANDUAN_UPGRADE_V80_ID.md).
+
+Panel Admin v7, pengaturan 13 izin tamu, hak proyek privat/RLS, Proyek Saya, analisis CSV, grafik, PDF, QR benda uji, jadwal dan Ingat Saya tetap tersedia. **Mode tamu tidak membuat akun** dan hanya memiliki akses analisis publik sesuai pengaturan Admin. Pengguna lama yang masih `pending` tidak otomatis diaktifkan.
+
+---
+
 # K4 ConcreteLab Pro v7.0 — Unified Administrator Dashboard
 
 **Pembaruan dari v5.5 langsung ke v7.0** (sudah mencakup kode v6.0 dan perbaikan sesi login v6.0.1). Menu Administrator menyediakan KPI akun/proyek/laporan, 13 izin tamu, persetujuan pengguna, perubahan peran, dan audit. Fitur analisis beton, QR sampel, dan proyek cloud tetap tersedia.

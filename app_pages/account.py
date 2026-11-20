@@ -1,12 +1,11 @@
-"""ConcreteLab Pro v7 — Supabase account and optional remember-me sign-in."""
+"""ConcreteLab Pro v8 — Supabase account, registration, optional remember-me."""
 import streamlit as st
 from concretelab.cloud_ui import cloud_client, signed_user, logout, cloud_notice
-from concretelab.cloud import sign_in, sign_up, get_profile
+from concretelab.cloud import get_profile
 from concretelab.permissions import load_access_policy
-from concretelab.persistent_session import persistence_enabled
 
 st.title('Akun & Akses')
-st.caption('Login untuk proyek cloud dan dashboard Admin. Analisis Cepat tersedia untuk tamu sesuai kebijakan Administrator.')
+st.caption('Kelola profil, proyek cloud, dan hak akses. Pendaftaran akun baru v8.0 tidak memerlukan persetujuan manual Administrator.')
 st.divider()
 
 try:
@@ -19,55 +18,9 @@ if client is None:
     st.stop()
 
 if user is None:
-    guest_policy=load_access_policy(client,cloud_configured=True)
-    signup_allowed=bool(guest_policy.registration_enabled)
-    auth_tabs=st.tabs(['Masuk', 'Daftar akun'] if signup_allowed else ['Masuk'])
-    signin=auth_tabs[0]
-    with signin:
-        persistent_ok = False
-        try:
-            persistent_ok = persistence_enabled(st.secrets)
-        except ValueError:
-            st.warning('Kunci pengingat login belum valid. Periksa auth_persistence.fernet_key.')
-        with st.form('k4_login_form'):
-            email=st.text_input('Email',autocomplete='email')
-            password=st.text_input('Password',type='password')
-            remember = st.checkbox('Ingat saya selama 7 hari (hanya perangkat pribadi)',
-                                   value=False, disabled=not persistent_ok)
-            if not persistent_ok:
-                st.caption('Opsi Ingat saya belum aktif. Admin perlu mengatur kunci enkripsi di Streamlit Secrets.')
-            submitted=st.form_submit_button('Masuk',type='primary',use_container_width=True)
-        if submitted:
-            try:
-                response=sign_in(client,email,password)
-                if response.user and response.session:
-                    # written on the NEXT rerun by signed_user, after cookie bridge mounts
-                    st.session_state['k4_remember_enabled'] = bool(remember and persistent_ok)
-                    st.success('Login berhasil. Buka Proyek Saya untuk menyimpan data.')
-                    st.rerun()
-                else: st.warning('Email atau password belum aktif. Periksa email verifikasi.')
-            except Exception:
-                st.error('Login gagal. Periksa kredensial atau verifikasi email.')
-    if signup_allowed:
-        signup=auth_tabs[1]
-        with signup:
-          with st.form('k4_signup_form'):
-              new_email=st.text_input('Email baru',autocomplete='email')
-              new_password=st.text_input('Password baru (minimal 8 karakter)',type='password')
-              confirm_password=st.text_input('Ulangi password',type='password')
-              signup_clicked=st.form_submit_button('Daftar',use_container_width=True)
-          if signup_clicked:
-              if new_password!=confirm_password:
-                  st.error('Konfirmasi password berbeda.')
-              else:
-                  try:
-                      res=sign_up(client,new_email,new_password)
-                      st.success('Permintaan pendaftaran diterima. Periksa email untuk konfirmasi jika diminta oleh Supabase.')
-                  except Exception:
-                      st.error('Pendaftaran belum berhasil. Cek format email atau coba lagi.')
-    if not signup_allowed:
-        st.info('Pendaftaran baru sedang ditutup oleh administrator. Akun yang sudah ada tetap dapat masuk.')
-    st.caption('Kredensial diproses oleh Supabase Auth. Aplikasi ini tidak menyimpan password di CSV atau GitHub.')
+    from concretelab.auth_views import render_auth_forms
+    policy = load_access_policy(client, cloud_configured=True)
+    render_auth_forms(client, registration_enabled=policy.registration_enabled, gateway=False)
     st.stop()
 
 uid=str(user.id)
@@ -83,11 +36,13 @@ st.caption('ID pengguna ini digunakan untuk menambahkan anggota proyek. Bagikan 
 st.write('**Peran global:**',role)
 st.write('**Status akses cloud:**',status)
 if status == 'pending':
-    st.warning('Akun menunggu persetujuan administrator. Analisis Cepat tetap bisa dipakai sesuai izin tamu.')
+    st.warning('Akun lama masih berstatus pending. Hubungi Administrator untuk mengaktifkan akun ini. Akun yang didaftarkan setelah migrasi v8.0 langsung aktif.')
 elif status == 'suspended':
     st.error('Akun ditangguhkan. Hubungi administrator. Proyek cloud tidak dapat dibuka.')
 if st.button('Keluar dari akun',type='secondary'):
-    logout(); st.rerun()
+    logout()
+    st.session_state['k4_guest_continue'] = False
+    st.rerun()
 
 if profile:
     with st.form('profile_edit'):

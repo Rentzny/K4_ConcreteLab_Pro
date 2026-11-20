@@ -1,10 +1,10 @@
-"""ConcreteLab Pro v7.0 — Unified Administrator & Smart Concrete Workspace."""
+"""ConcreteLab Pro v8.0 — Responsive Sign In & Self-Service Accounts."""
 from pathlib import Path
 import streamlit as st
 
 ROOT = Path(__file__).resolve().parent
 st.set_page_config(
-    page_title="ConcreteLab Pro v7 | Laboratorium Beton",
+    page_title="ConcreteLab Pro v8 | Laboratorium Beton",
     page_icon="🏗️",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -71,6 +71,20 @@ if raw_token:
     except Exception:
         st.error('Layanan verifikasi belum tersedia. Periksa koneksi Supabase.')
     st.info('Verifikasi ini bukan tanda tangan digital, sertifikat uji, atau persetujuan teknis resmi.')
+    st.stop()
+
+# v8 responsive welcome gateway: visitor selects sign-in, sign-up, or guest.
+# Public QR verification above remains anonymously accessible.
+try:
+    from concretelab.cloud_ui import signed_user
+    _, _signed_in_user = signed_user()
+except Exception:
+    _signed_in_user = None
+if _signed_in_user is None and not st.session_state.get('k4_guest_continue', False):
+    welcome = st.Page('app_pages/welcome.py', title='Selamat Datang',
+                      icon='🏗️', url_path='', default=True)
+    gate_nav = st.navigation([welcome], position='hidden')
+    gate_nav.run()
     st.stop()
 
 # Tiga menu utama tetap ada; Akun dan Proyek Saya menjadi fitur tambahan.

@@ -1,0 +1,9 @@
+CONCRETELAB PRO v8.0 — UPGRADE DARI v7.0
+1. Jalankan supabase/schema_v80.sql lewat SQL Editor (backup dahulu).
+2. Ekstrak paket UPDATE v8.0 dan copy file ke repository lama (sejajar app.py).
+3. GitHub Desktop → Commit → Push origin.
+4. Cek halaman awal Masuk/Daftar/Lanjutkan sebagai Tamu pada HP dan desktop.
+5. Tes 2 password berbeda, konfirmasi email, lalu cek akun baru langsung active dengan role user.
+6. Tes Dashboard Administrator tetap bekerja dan mengatur 13 izin tamu.
+7. Jangan upload secret key maupun Fernet Key ke GitHub.
+Dokumentasi lengkap: docs/PANDUAN_UPGRADE_V80_ID.md.

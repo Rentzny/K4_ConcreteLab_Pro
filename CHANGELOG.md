@@ -1,3 +1,14 @@
+## v8.0 — Self-Service Registration & Responsive Entry
+
+- Halaman pembuka responsif HP/desktop: Masuk, Daftar Akun, Lanjutkan sebagai Tamu.
+- Form daftar email + password + Konfirmasi Password; penolakan bila tidak sama.
+- Migrasi SQL `schema_v80.sql` mengubah default akun baru menjadi `active`, role `user` tetap; kebijakan RLS dan hak Admin tidak berubah.
+- Akun pending/suspended lama tetap demikian dan dapat diatur Admin.
+- Verifikasi email Supabase tetap diperlukan bila kebijakan Confirm Email aktif.
+- Dashboard Admin mempertahankan 13 fitur tamu; label manajemen akun diperbarui.
+- Semua halaman analisis, proyek cloud, PDF, QR, jadwal dan pengingat sesi v7 dipertahankan.
+- Pengujian regresi dan validasi form baru.
+
 # Changelog ConcreteLab Pro
 
 ## v5.0 — Sample Tracking & Testing Schedule

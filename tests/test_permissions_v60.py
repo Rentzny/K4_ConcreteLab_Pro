@@ -175,8 +175,12 @@ def test_admin_page_uses_verified_admin():
 def test_registration_protected_by_page_flag():
     root=Path(__file__).resolve().parents[1]
     account=(root/'app_pages/account.py').read_text()
-    assert 'if signup_allowed:' in account
+    # v8 moved the sign-up form to the shared auth component (welcome + Akun),
+    # but kept the server-backed registration_enabled flag and its UI guard.
+    views=(root/'concretelab/auth_views.py').read_text()
+    assert 'registration_enabled and client is not None' in views
     assert 'load_access_policy(' in account
+    assert 'render_auth_forms(' in account
     workspace=(root/'app_pages/workspace.py').read_text()
     assert "profile.get('account_status') != 'active'" in workspace
 
